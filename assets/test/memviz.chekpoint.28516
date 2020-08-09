@@ -1,0 +1,12 @@
+[checkpoint id]
+0 -> memviz_begin
+1 -> Before_hello
+
+[met checkpoint]
+fl=hello/hello.c
+fn=main
+9 [0x1089ac;0x1089c4] -> 0
+11 [0x1089c6;0x1089cb] -> 0
+13 [0x1089d1;0x108a29] -> 0 1
+15 [0x108a2d;0x108a34] -> 1
+19 [0x108a4e;0x108a55] -> 1

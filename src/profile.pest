@@ -1,0 +1,32 @@
+WHITESPACE = _{ " " }
+dec = { ASCII_DIGIT+ }
+hex = { "0x" ~ ASCII_HEX_DIGIT+ }
+eol = _{"\n"}
+
+checkpoints_section = { checkpoints_section_header ~ eol ~ (checkpoint_line ~ eol)+ }
+checkpoints_section_header = _{ "[" ~ "checkpoint id" ~ "]" }
+
+checkpoint_line = { dec ~ "->" ~ checkpoint_name }
+checkpoint_name = @{ function_name_char+ }
+checkpoint_name_char = {ASCII_ALPHANUMERIC | "_"}
+
+codelocs_section = { codelocs_section_header ~ eol ~ file_section* }
+codelocs_section_header = _{ "["~ "met checkpoint" ~ "]" }
+
+file_section = {file_line ~ function_section*}
+file_line = { "fl" ~ "=" ~ file_name ~ eol }
+file_name = @{ file_name_char+ }
+file_name_char = { ASCII_ALPHANUMERIC | "." | "_" | "/" | "?" | "-" }
+
+function_section = {function_line ~ code_loc_line*}
+function_line = {"fn" ~ "=" ~ function_name ~ eol}
+function_name = @{ function_name_char+ }
+function_name_char = {ASCII_ALPHANUMERIC | "_" | "(" | ")" | " " | "?" }
+
+code_loc_line = { line_nb ~ addr_range ~ "->" ~ checkpoint_list ~ eol}
+line_nb = { dec }
+addr_range = { "[" ~ hex ~ ";" ~ hex ~ "]"}
+
+checkpoint_list = {dec*}
+
+file = {SOI ~ checkpoints_section ~ eol* ~ codelocs_section ~ EOI}
