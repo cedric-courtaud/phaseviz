@@ -1,27 +1,7 @@
 use std::cmp::Ordering;
 use std::fmt::{self, Debug};
 use std::rc::Rc;
-
-pub struct CodeLoc {
-    pub file_name: Option<Rc<String>>,
-    pub function_name: Option<Rc<String>>,
-    pub line_nb: u32,
-    pub addr_range: (u64, u64),
-    pub checkpoints: Vec<u32>
-}
-
-
-impl CodeLoc {
-    pub fn new(file_name: Option<Rc<String>>, function_name: Option<Rc<String>>, line_nb: u32, start_addr: u64, end_addr: u64, checkpoints: Vec<u32>) -> CodeLoc {
-        CodeLoc {
-            file_name: file_name,
-            function_name: function_name, 
-            line_nb: line_nb,
-            addr_range: (start_addr, end_addr),
-            checkpoints: checkpoints
-        }
-    }
-}
+use std::collections::BTreeSet;
 
 fn cmp_option_helper<T:Ord>(a: &Option<T>, b: &Option<T>) -> Ordering {
 
@@ -39,62 +19,138 @@ fn cmp_option_helper<T:Ord>(a: &Option<T>, b: &Option<T>) -> Ordering {
     comp
 }
 
-impl Ord for CodeLoc {
-    fn cmp(&self, other: &Self) -> Ordering {
-        let cmp_file =cmp_option_helper(&self.file_name, &other.file_name);
-        
-        if cmp_file  == Ordering::Equal {
-            let cmp_function = cmp_option_helper(&self.function_name, &other.function_name);
-            
-            if cmp_function == Ordering::Equal {
-                return self.line_nb.cmp(&other.line_nb);
-            }
+pub struct CodeLine {
+    pub nb : usize,
+    pub addr_range: (u64, u64),
+    pub line_content: Option<String>,
+    pub function: Option<Rc<String>>,
+    pub checkpoints: Vec<u32>,
+    pub is_file_available: bool
+}
 
-            return cmp_function;
+impl CodeLine {
+    pub fn new(nb: usize, addr_range: (u64, u64), line_content: Option<String>, function: Option<Rc<String>>, is_file_available: bool, checkpoints: Vec<u32>) -> CodeLine {
+        CodeLine{
+            nb: nb,
+            addr_range: addr_range,
+            line_content: line_content,
+            function: function,
+            checkpoints: checkpoints,
+            is_file_available: is_file_available,
+        }
+    }
+}
+
+impl Ord for CodeLine {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let cmp_func = cmp_option_helper(&self.function, &other.function);
+
+        if self.is_file_available || (cmp_func == Ordering::Equal) {
+            return self.nb.cmp(&other.nb)
         }
 
-        return cmp_file
+        cmp_func
     }
 }
 
-impl PartialOrd for CodeLoc {
+impl PartialOrd for CodeLine {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
+        Some(self.cmp(&other))
     }
 }
 
-impl PartialEq for CodeLoc {
+impl PartialEq for CodeLine {
     fn eq(&self, other: &Self) -> bool {
-        self.file_name == other.file_name 
-            && self.function_name == other.function_name
-            && self.line_nb == other.line_nb
-            && self.addr_range == other.addr_range
-            && self.checkpoints == other.checkpoints
+        self.nb == other.nb &&
+        self.addr_range == other.addr_range &&
+        self.function == other.function
     }
 }
 
-impl Eq for CodeLoc {}
+impl Eq for CodeLine {}
 
-impl Debug for CodeLoc {
+impl Debug for CodeLine {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("CodeLoc")
-         .field("file_name", &self.file_name)
-         .field("function_name", &self.function_name)
-         .field("line_nb", &self.line_nb)
+        f.debug_struct("CodeLine")
+         .field("nb", &self.nb)
          .field("addr_range", &self.addr_range)
+         .field("function", &self.function)
+         .field("is_file_available", &self.is_file_available)
          .field("checkpoints",&self.checkpoints)
          .finish()
     }
 }
 
+pub struct FileSection {
+    pub name: String,
+    pub lines: BTreeSet<CodeLine>,
+    pub available: bool,
+}
+
+impl FileSection {
+    pub fn new(name: String, available: bool) -> FileSection {
+        FileSection{
+            name: name, 
+            lines: BTreeSet::new(),
+            available: available,
+        }
+    }
+
+    pub fn insert_line(&mut self, line: CodeLine) {
+
+    }
+}
+
+impl Ord for FileSection {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let cmp_name = self.name.cmp(&other.name);
+
+        if cmp_name != Ordering::Equal {
+            if self.name == "???" {
+                return Ordering::Less
+            }
+            if other.name == "???" {
+                return Ordering::Greater
+            }
+        }
+
+        cmp_name
+    }
+}
+
+impl PartialOrd for FileSection {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(&other))
+    }
+}
+
+impl PartialEq for FileSection {
+    fn eq(&self, other: &Self) -> bool {
+        (self.name == other.name) && (self.lines == other.lines)
+    }
+}
+
+impl Eq for FileSection {}
+
+impl Debug for FileSection {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("FileSection")
+         .field("name", &self.name)
+         .field("lines",&self.lines)
+         .finish()
+    }
+}
+
+
 pub struct Profile {
     pub checkpoints: Vec<String>, 
-    pub code_loc: Vec<CodeLoc>,
+    pub file_sections: Vec<FileSection>,
 }
 
 impl PartialEq for Profile {
     fn eq(&self, other: &Self) -> bool {
-        self.checkpoints.eq(&other.checkpoints) && self.code_loc.eq(&other.code_loc)
+        self.checkpoints.eq(&other.checkpoints) 
+        && self.file_sections.eq(&other.file_sections)
     }
 }
 
@@ -104,50 +160,26 @@ impl Debug for Profile {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Profile")
          .field("checkpoints", &self.checkpoints)
-         .field("code_loc", &self.code_loc)
+         .field("code_loc", &self.file_sections)
          .finish()
     }
 }
 
-
 #[cfg(test)]
 mod tests {
-    use crate::profile::CodeLoc;
+    use crate::profile::{Profile, CodeLine, FileSection};
     use std::rc::Rc;
 
-    #[test]
-    fn code_loc_eq(){
-        let mut c1 = CodeLoc::new(Some(Rc::new(String::from("a"))), Some(Rc::new(String::from("f"))), 1, 0, 0, vec!());
-        let mut c2 = CodeLoc::new(Some(Rc::new(String::from("a"))), Some(Rc::new(String::from("f"))), 1, 0, 0, vec!());
-        let c3 = CodeLoc::new(Some(Rc::new(String::from("a"))), Some(Rc::new(String::from("f"))), 1, 0, 1, vec!());
-        let c4 = CodeLoc::new(Some(Rc::new(String::from("a"))), Some(Rc::new(String::from("f"))), 1, 0, 1, vec!(1));
+    fn line_cmp() {
+        let l1 = CodeLine::new(0, (0, 1) , None, Some(Rc::new(String::from("g"))), true, vec!());
+        let l2 = CodeLine::new(1, (0, 1) , None, Some(Rc::new(String::from("f"))), true, vec!());
+        let l3 = CodeLine::new(2, (0, 1) , None, Some(Rc::new(String::from("f"))), true, vec!());
+        let l4 = CodeLine::new(1, (0, 1) , None, Some(Rc::new(String::from("f"))), false, vec!());
+        let l5 = CodeLine::new(0, (0, 1) , None, Some(Rc::new(String::from("g"))), false, vec!());
 
-        assert_eq!(c1, c2);
-        assert_ne!(c3, c4);
-        assert_ne!(c2, c3);
-        
-        c1 = CodeLoc::new(None, Some(Rc::new(String::from("f"))), 1, 0, 0, vec!());
-        assert_ne!(c1, c2);
-
-        c2 = CodeLoc::new(None, None, 1, 0, 0, vec!());
-        assert_ne!(c1, c2);
+        assert!(l1 < l2);
+        assert!(l2 < l3);
+        assert!(l1 < l3);
+        assert!(l4 < l5);
     }
-
-    #[test]
-    fn code_loc_cmp() {
-        let c1 = CodeLoc::new(Some(Rc::new(String::from("a"))), Some(Rc::new(String::from("f1"))), 1, 0, 0, vec!());
-        let c2 = CodeLoc::new(Some(Rc::new(String::from("a"))), Some(Rc::new(String::from("f1"))), 2, 0, 0, vec!());
-        let c3 = CodeLoc::new(Some(Rc::new(String::from("a"))), Some(Rc::new(String::from("f2"))), 1, 0, 0, vec!());
-        let c4 = CodeLoc::new(Some(Rc::new(String::from("b"))), Some(Rc::new(String::from("f2"))), 1, 0, 0, vec!());
-        let c5 = CodeLoc::new(None, Some(Rc::new(String::from("f2"))), 1, 0, 0, vec!());
-        let c6 = CodeLoc::new(None, None, 1, 0, 0, vec!());
-
-        assert_eq!(c1, c1);
-        assert!(c1 < c2);
-        assert!(c2 < c3);
-        assert!(c3 < c4);
-        assert!(c4 < c5);
-        assert!(c5 < c6);
-    }
-
 }

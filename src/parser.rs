@@ -1,4 +1,4 @@
-use crate::profile::{Profile, CodeLoc};
+use crate::profile::{Profile, CodeLine, FileSection};
 use pest::{Parser};
 
 use std::path::Path;
@@ -44,10 +44,10 @@ impl Profile {
         Some(Rc::clone(name))
     }
 
-    fn parse_code_loc_line<'a>(line: pest::iterators::Pair<Rule>, code_locs: &mut Vec<CodeLoc>, filename: &Rc<String>, function_name: &Rc<String>) {
+    fn parse_code_loc_line<'a>(line: pest::iterators::Pair<Rule>, file_section: &mut FileSection, function_name: &Rc<String>) {
         let mut min_addr:u64 = 0;
         let mut max_addr:u64 = 0;
-        let mut line_nb:u32 = 0;
+        let mut line_nb:usize = 0;
         let mut checkpoints: Option<Vec<u32>> = None;
 
         for field in line.into_inner() {
@@ -83,18 +83,10 @@ impl Profile {
             }
         }
 
-        let loc = CodeLoc::new(Profile::check_name(filename), 
-                               Profile::check_name(function_name), 
-                               line_nb.clone(), 
-                               min_addr, 
-                               max_addr, 
-                               checkpoints.unwrap());
-
-        code_locs.push(loc);
-
+        file_section.lines.insert(CodeLine::new(line_nb, (min_addr, max_addr), None, Some(function_name.clone()), file_section.available, checkpoints.unwrap()));
     }
 
-    fn parse_function_section(section: pest::iterators::Pair<Rule>, code_locs: &mut Vec<CodeLoc>, filename: &Rc<String>) {
+    fn parse_function_section(section: pest::iterators::Pair<Rule>, file_section: &mut FileSection) {
         let mut function_name = Rc::new(String::from("???"));
 
         for line in section.into_inner() {
@@ -104,36 +96,51 @@ impl Profile {
                 }
 
                 Rule::code_loc_line => {
-                    Profile::parse_code_loc_line(line, code_locs, filename, &function_name);
+                    Profile::parse_code_loc_line(line, file_section, &function_name);
                 }
+
                 _ => {}
             }
         }
     }
 
-    fn parse_file_section(section: pest::iterators::Pair<Rule>, code_locs: &mut Vec<CodeLoc>) {
-        let mut filename = Rc::new(String::from("???"));
+    fn parse_file_section(section: pest::iterators::Pair<Rule>) -> FileSection {
+        let mut ret: Option<FileSection> = None;
 
-        for line in section.into_inner() {
-            match line.as_rule() {
+        let mut pairs = section.into_inner();
+
+        let line = pairs.next().unwrap();
+
+        match line.as_rule() {
                 Rule::file_line => {
-                    filename = Rc::new(String::from(line.into_inner().as_str()));
+                    let filename = String::from(line.into_inner().as_str());
+                    let available = filename == "???";
+                    ret = Some(FileSection::new(filename, available));
                 }
 
+                _ => {}
+        }
+
+        let mut s = ret.unwrap();
+
+        for line in pairs {
+            match line.as_rule() {
                 Rule::function_section => {
-                    Profile::parse_function_section(line, code_locs, &filename);
+                    Profile::parse_function_section(line, &mut s);
                 }
+
                 _ => {}
             }
         }
 
+        s
     }
 
-    fn parse_code_locs_section(section: pest::iterators::Pair<Rule>, code_locs: &mut Vec<CodeLoc>) {
+    fn parse_code_locs_section(section: pest::iterators::Pair<Rule>, file_sections: &mut Vec<FileSection>) {
         for line in section.into_inner() {
             match line.as_rule() {
                 Rule::file_section => {
-                    Profile::parse_file_section(line, code_locs);
+                    file_sections.push(Profile::parse_file_section(line));
                 }
                 _ => {println!("----- {:?}", line)}
             }
@@ -142,7 +149,7 @@ impl Profile {
 
     pub fn parse<P: AsRef<Path>>(path: P) -> Self {
         let mut checkpoints = Vec::<String>::new();
-        let mut code_locs = Vec::<CodeLoc>::new();
+        let mut file_sections = Vec::<FileSection>::new();
 
         let unparsed_file = read_to_string(path).unwrap();
 
@@ -154,30 +161,38 @@ impl Profile {
 
             match section.as_rule() {
                 Rule::checkpoints_section => { Profile::parse_checkpoint_id_section(section, &mut checkpoints) }
-                Rule::codelocs_section => { Profile::parse_code_locs_section(section, &mut code_locs)}
+                Rule::codelocs_section => { Profile::parse_code_locs_section(section, &mut file_sections)}
 
                 _ => {}
             }
         }
 
-        code_locs.sort();
+        file_sections.sort();
 
         Profile {
             checkpoints: checkpoints,
-            code_loc: code_locs
+            file_sections: file_sections
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::profile::{CodeLoc, Profile};
+    use crate::profile::{Profile, FileSection, CodeLine};
     use std::rc::Rc;
 
     pub fn asset_memviz_checkpoint_28516() -> Profile {
-        let file = Rc::new(String::from("hello/hello.c"));
+        let file = String::from("hello/hello.c");
         let func = Rc::new(String::from("main"));
 
+        let mut files = FileSection::new(file, true);
+        
+        files.lines.insert(CodeLine::new(9,  (0x1089ac, 0x1089c4), None, Some(func.clone()), true, vec!(0)));
+        files.lines.insert(CodeLine::new(11, (0x1089c6, 0x1089cb), None, Some(func.clone()), true, vec!(0)));
+        files.lines.insert(CodeLine::new(13, (0x1089d1, 0x108a29), None, Some(func.clone()), true, vec!(0, 1)));
+        files.lines.insert(CodeLine::new(15, (0x108a2d, 0x108a34), None, Some(func.clone()), true, vec!(1)));
+        files.lines.insert(CodeLine::new(19, (0x108a4e, 0x108a55), None, Some(func.clone()), true, vec!(1)));
+        
         Profile {
             checkpoints: vec!(
                 "memviz_begin",
@@ -186,13 +201,7 @@ mod tests {
              .map(|s| String::from(s))
              .collect(),
 
-            code_loc: vec!(
-                CodeLoc::new(Some(file.clone()), Some(func.clone()),  9, 0x1089ac, 0x1089c4, vec!(0)),
-                CodeLoc::new(Some(file.clone()), Some(func.clone()), 11, 0x1089c6, 0x1089cb, vec!(0)),
-                CodeLoc::new(Some(file.clone()), Some(func.clone()), 13, 0x1089d1, 0x108a29, vec!(0, 1)),
-                CodeLoc::new(Some(file.clone()), Some(func.clone()), 15, 0x108a2d, 0x108a34, vec!(1)),
-                CodeLoc::new(Some(file.clone()), Some(func.clone()), 19, 0x108a4e, 0x108a55, vec!(1))
-            )
+            file_sections: vec!(files)
         }
     }
 
