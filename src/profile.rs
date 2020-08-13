@@ -178,7 +178,6 @@ impl Debug for FileSection {
     }
 }
 
-
 pub struct Profile {
     pub checkpoints: Vec<String>, 
     pub file_sections: Vec<FileSection>,
@@ -199,6 +198,14 @@ impl Debug for Profile {
          .field("checkpoints", &self.checkpoints)
          .field("code_loc", &self.file_sections)
          .finish()
+    }
+}
+
+impl Profile {
+    pub fn sync_with_fs(&mut self) {
+        for section in &mut self.file_sections {
+            section.sync_with_fs();
+        }
     }
 }
 
