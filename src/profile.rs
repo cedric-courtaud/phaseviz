@@ -1,7 +1,10 @@
+
+use std::collections::BTreeSet;
 use std::cmp::Ordering;
 use std::fmt::{self, Debug};
 use std::rc::Rc;
-use std::collections::BTreeSet;
+use std::fs::{read_to_string};
+
 
 fn cmp_option_helper<T:Ord>(a: &Option<T>, b: &Option<T>) -> Ordering {
 
@@ -96,7 +99,41 @@ impl FileSection {
         }
     }
 
-    pub fn insert_line(&mut self, line: CodeLine) {
+    pub fn sync_with_fs(&mut self){
+        if !self.available {
+            return
+        }
+
+        let content = read_to_string(&self.name);
+
+        match content {
+            Ok(c) => {
+                let mut new_set = BTreeSet::<CodeLine>::new();
+                
+                for (i, line) in c.lines().enumerate() {
+                    let first = self.lines.first();
+
+                    match first {
+                        Some(codeline) => {
+                            if i == (codeline.nb - 1) {
+                                let mut tmp = self.lines.pop_first().unwrap();
+                                tmp.line_content = Some(String::from(line));
+                                new_set.insert(tmp);
+                            } else {
+                                new_set.insert(CodeLine::new(i + 1, (0, 0), Some(String::from(line)), None, true, vec!()));
+                            }
+                        }
+                        None => {
+                                new_set.insert(CodeLine::new(i + 1, (0, 0), Some(String::from(line)), None, true, vec!()));
+                        }
+                    }
+                }
+
+                self.lines = new_set;
+            }
+
+            Err(_) => { return }
+        }
 
     }
 }
@@ -170,6 +207,7 @@ mod tests {
     use crate::profile::{Profile, CodeLine, FileSection};
     use std::rc::Rc;
 
+    #[test]
     fn line_cmp() {
         let l1 = CodeLine::new(0, (0, 1) , None, Some(Rc::new(String::from("g"))), true, vec!());
         let l2 = CodeLine::new(1, (0, 1) , None, Some(Rc::new(String::from("f"))), true, vec!());
@@ -181,5 +219,50 @@ mod tests {
         assert!(l2 < l3);
         assert!(l1 < l3);
         assert!(l4 < l5);
+    }
+    #[test]
+    fn profile_expansion() {
+        let file = String::from("assets/test/hello/hello.c");
+        let func = Rc::new(String::from("main"));
+
+        let mut files = FileSection::new(file.clone(), true);
+        
+        files.lines.insert(CodeLine::new(9,  (0x1089ac, 0x1089c4), None, Some(func.clone()), true, vec!(0)));
+        files.lines.insert(CodeLine::new(11, (0x1089c6, 0x1089cb), None, Some(func.clone()), true, vec!(0)));
+        files.lines.insert(CodeLine::new(13, (0x1089d1, 0x108a29), None, Some(func.clone()), true, vec!(0, 1)));
+        files.lines.insert(CodeLine::new(15, (0x108a2d, 0x108a34), None, Some(func.clone()), true, vec!(1)));
+        files.lines.insert(CodeLine::new(19, (0x108a4e, 0x108a55), None, Some(func.clone()), true, vec!(1)));
+
+        let mut expected: Vec<CodeLine> = vec!();
+        let file_content = std::fs::read_to_string(&file).unwrap();
+        let file_lines: Vec<&str> = file_content.lines().collect();
+        
+        expected.push(CodeLine::new(1,  (0, 0), Some(String::from(file_lines[0].clone())), None, true, vec!()));
+        expected.push(CodeLine::new(2,  (0, 0), Some(String::from(file_lines[1].clone())), None, true, vec!()));
+        expected.push(CodeLine::new(3,  (0, 0), Some(String::from(file_lines[2].clone())), None, true, vec!()));
+        expected.push(CodeLine::new(4,  (0, 0), Some(String::from(file_lines[3].clone())), None, true, vec!()));
+        expected.push(CodeLine::new(5,  (0, 0), Some(String::from(file_lines[4].clone())), None, true, vec!()));
+        expected.push(CodeLine::new(6,  (0, 0), Some(String::from(file_lines[5].clone())), None, true, vec!()));
+        expected.push(CodeLine::new(7,  (0, 0), Some(String::from(file_lines[6].clone())), None, true, vec!()));
+        expected.push(CodeLine::new(8,  (0, 0), Some(String::from(file_lines[7].clone())), None, true, vec!()));
+        expected.push(CodeLine::new(9,  (0x1089ac, 0x1089c4), Some(String::from(file_lines[8].clone())), Some(func.clone()), true, vec!(0)));
+        expected.push(CodeLine::new(10, (0, 0), Some(String::from(file_lines[9].clone())), None, true, vec!()));
+        expected.push(CodeLine::new(11, (0x1089c6, 0x1089cb), Some(String::from(file_lines[10].clone())), Some(func.clone()), true, vec!(0)));
+        expected.push(CodeLine::new(12, (0, 0), Some(String::from(file_lines[11].clone())), None, true, vec!()));
+        expected.push(CodeLine::new(13, (0x1089d1, 0x108a29), Some(String::from(file_lines[12].clone())), Some(func.clone()), true, vec!(0,1)));
+        expected.push(CodeLine::new(14, (0, 0), Some(String::from(file_lines[13].clone())), None,true, vec!()));
+        expected.push(CodeLine::new(15, (0x108a2d, 0x108a34), Some(String::from(file_lines[14].clone())), Some(func.clone()), true, vec!(1)));
+        expected.push(CodeLine::new(16, (0, 0), Some(String::from(file_lines[15].clone())), None, true, vec!()));
+        expected.push(CodeLine::new(17, (0, 0), Some(String::from(file_lines[16].clone())), None, true, vec!()));
+        expected.push(CodeLine::new(18, (0, 0), Some(String::from(file_lines[17].clone())), None, true, vec!()));
+        expected.push(CodeLine::new(19, (0x108a4e, 0x108a55), Some(String::from(file_lines[18].clone())), Some(func.clone()), true, vec!(1)));
+        expected.push(CodeLine::new(20, (0, 0), Some(String::from(file_lines[19].clone())), None, true, vec!()));
+        expected.push(CodeLine::new(21, (0, 0), Some(String::from(file_lines[20].clone())), None, true, vec!()));
+        expected.push(CodeLine::new(22, (0, 0), Some(String::from(file_lines[21].clone())), None, true, vec!()));
+        expected.push(CodeLine::new(23, (0, 0), Some(String::from(file_lines[22].clone())), None, true, vec!()));
+        expected.push(CodeLine::new(24, (0, 0), Some(String::from(file_lines[23].clone())), None, true, vec!()));
+        expected.push(CodeLine::new(25, (0, 0), Some(String::from(file_lines[24].clone())), None, true, vec!()));
+
+        files.sync_with_fs();
     }
 }

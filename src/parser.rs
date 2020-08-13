@@ -182,7 +182,7 @@ mod tests {
     use std::rc::Rc;
 
     pub fn asset_memviz_checkpoint_28516() -> Profile {
-        let file = String::from("hello/hello.c");
+        let file = String::from("assets/test/hello/hello.c");
         let func = Rc::new(String::from("main"));
 
         let mut files = FileSection::new(file, true);
