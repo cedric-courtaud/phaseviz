@@ -1,8 +1,5 @@
 use crate::profile::{Profile, FileSection, CodeLine};
-use std::io::{Read, Write, stdout, stdin};
-use termion::color;
-use std::fmt::format;
-use std::cell::RefCell;
+use std::io::{stdout, stdin};
 use std::fmt;
 
 use termion::{
@@ -46,7 +43,6 @@ impl<'a> PartialEq for ProfileItem<'a> {
 
 
 pub struct ProfileItemIterator<'a> {
-    profile: &'a Profile,
     line_iterator: Option<std::collections::btree_set::Iter<'a, CodeLine>>,
     file_iterator: std::slice::Iter<'a, FileSection>,
     curr_file: Option<&'a FileSection>,
@@ -68,7 +64,6 @@ impl<'a> ProfileItemIterator<'a> {
 
     fn new(profile: &'a Profile) -> Self {
         ProfileItemIterator {
-            profile: profile,
             file_iterator: profile.file_sections.iter(),
             curr_file: None,
             line_iterator: None,

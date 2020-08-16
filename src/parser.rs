@@ -36,14 +36,6 @@ impl Profile {
         }
     }
 
-    fn check_name(name: &Rc<String>) -> Option<Rc<String>> {
-        if **name == "???" {
-            return None;
-        }
-
-        Some(Rc::clone(name))
-    }
-
     fn parse_code_loc_line<'a>(line: pest::iterators::Pair<Rule>, file_section: &mut FileSection, function_name: &Rc<String>) {
         let mut min_addr:u64 = 0;
         let mut max_addr:u64 = 0;

@@ -1,18 +1,3 @@
-use crate::profile::{Profile, FileSection, CodeLine};
-use std::io::{Read, Write, stdout, stdin};
-use termion::color;
-use std::fmt::format;
-use std::cell::RefCell;
-
-use termion::{
-    event::Key,
-    input::TermRead,
-    raw::IntoRawMode
-};
-
-use tui::backend::TermionBackend;
-use tui::Terminal;
-
 use tui::{
     layout::{Constraint, Direction, Layout},
     widgets::{Block, Borders, Paragraph},
