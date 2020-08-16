@@ -83,7 +83,7 @@ impl Profile {
             }
         }
 
-        file_section.lines.insert(CodeLine::new(line_nb, (min_addr, max_addr), None, Some(function_name.clone()), file_section.available, checkpoints.unwrap()));
+        file_section.lines.insert(CodeLine::new(line_nb, (min_addr, max_addr), None, Some(function_name.clone()), file_section.has_debug_info, checkpoints.unwrap()));
     }
 
     fn parse_function_section(section: pest::iterators::Pair<Rule>, file_section: &mut FileSection) {
@@ -114,8 +114,8 @@ impl Profile {
         match line.as_rule() {
                 Rule::file_line => {
                     let filename = String::from(line.into_inner().as_str());
-                    let available = filename == "???";
-                    ret = Some(FileSection::new(filename, available));
+                    let has_debug_info = filename == "???";
+                    ret = Some(FileSection::new(filename, has_debug_info));
                 }
 
                 _ => {}

@@ -28,7 +28,7 @@ pub struct CodeLine {
     pub line_content: Option<String>,
     pub function: Option<Rc<String>>,
     pub checkpoints: Vec<u32>,
-    pub is_file_available: bool
+    pub has_debug_info: bool
 }
 
 impl CodeLine {
@@ -39,7 +39,7 @@ impl CodeLine {
             line_content: line_content,
             function: function,
             checkpoints: checkpoints,
-            is_file_available: is_file_available,
+            has_debug_info: is_file_available,
         }
     }
 }
@@ -48,7 +48,7 @@ impl Ord for CodeLine {
     fn cmp(&self, other: &Self) -> Ordering {
         let cmp_func = cmp_option_helper(&self.function, &other.function);
 
-        if self.is_file_available || (cmp_func == Ordering::Equal) {
+        if self.has_debug_info || (cmp_func == Ordering::Equal) {
             return self.nb.cmp(&other.nb)
         }
 
@@ -78,7 +78,7 @@ impl Debug for CodeLine {
          .field("nb", &self.nb)
          .field("addr_range", &self.addr_range)
          .field("function", &self.function)
-         .field("is_file_available", &self.is_file_available)
+         .field("is_file_available", &self.has_debug_info)
          .field("checkpoints",&self.checkpoints)
          .finish()
     }
@@ -87,20 +87,20 @@ impl Debug for CodeLine {
 pub struct FileSection {
     pub name: String,
     pub lines: BTreeSet<CodeLine>,
-    pub available: bool,
+    pub has_debug_info: bool,
 }
 
 impl FileSection {
-    pub fn new(name: String, available: bool) -> FileSection {
+    pub fn new(name: String, has_debug_info: bool) -> FileSection {
         FileSection{
             name: name, 
             lines: BTreeSet::new(),
-            available: available,
+            has_debug_info: has_debug_info,
         }
     }
 
-    pub fn sync_with_fs(&mut self){
-        if !self.available {
+    pub fn sync_with_source_code(&mut self){
+        if !self.has_debug_info {
             return
         }
 
@@ -204,7 +204,7 @@ impl Debug for Profile {
 impl Profile {
     pub fn sync_with_fs(&mut self) {
         for section in &mut self.file_sections {
-            section.sync_with_fs();
+            section.sync_with_source_code();
         }
     }
 }
@@ -270,6 +270,6 @@ mod tests {
         expected.push(CodeLine::new(24, (0, 0), Some(String::from(file_lines[23].clone())), None, true, vec!()));
         expected.push(CodeLine::new(25, (0, 0), Some(String::from(file_lines[24].clone())), None, true, vec!()));
 
-        files.sync_with_fs();
+        files.sync_with_source_code();
     }
 }
