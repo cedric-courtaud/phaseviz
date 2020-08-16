@@ -53,7 +53,7 @@ fn render_code_line <'a>(item: &'a ProfileItem) -> Spans<'a> {
 
             match l.line_content.as_ref() {
                 Some(l) => line = Span::raw(format!("  {}", l)),
-                None => line = Span::styled("  Source file is unavailable", Style::default().fg(Color::Gray).add_modifier(Modifier::ITALIC))
+                None => line = Span::styled(format!("  fn={}", l.function.as_ref().unwrap()), Style::default().fg(Color::Gray).add_modifier(Modifier::ITALIC))
             }
 
             return Spans::from(vec![
@@ -70,9 +70,9 @@ pub fn draw<B: tui::backend::Backend>(f: &mut Frame<B>, app: &mut App) {
             .direction(Direction::Vertical)
             .constraints(
                 [
-                    Constraint::Length(2),
+                    Constraint::Length(3),
                     Constraint::Min(0),
-                    Constraint::Length(2),
+                    Constraint::Length(3),
                 ]
                 .as_ref(),
             )
@@ -89,11 +89,29 @@ pub fn draw<B: tui::backend::Backend>(f: &mut Frame<B>, app: &mut App) {
                 Constraint::Percentage(50),
                 Constraint::Percentage(50)
             ].as_ref())
-            .margin(1)
+            .margin(0)
             .split(main_chunk);
+        
+        let header_chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage(100),
+            ].as_ref())
+            .margin(0)
+            .split(header_chunk);
+        
+        let footer_chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage(100),
+            ].as_ref())
+            .margin(0)
+            .split(footer_chunk);
 
         let checkpoints_chunk = main_chunks[0];
         let code_chunk = main_chunks[1];
+
+        let info_chunk = footer_chunks[0];
 
         let checkpoint_block = Block::default().borders(Borders::ALL);
 
@@ -116,11 +134,12 @@ pub fn draw<B: tui::backend::Backend>(f: &mut Frame<B>, app: &mut App) {
         let t2 = format!("({}, {}, {}, {})\n", a, b, h, total);
         let info_text = Text::from(t2.as_str());
 
-        let info_block = Block::default().style(Style::default().bg(Color::Red))
-                                         .borders(Borders::RIGHT | Borders::LEFT);
+        let info_block = Block::default().borders(Borders::ALL)
+                                         .style(Style::default().bg(Color::Red));
+
         let info = Paragraph::new(info_text).block(info_block);
         
         f.render_widget(code, code_chunk);
         f.render_widget(checkpoints, checkpoints_chunk);
-        f.render_widget(info, footer_chunk);
+        f.render_widget(info, info_chunk);
 }
