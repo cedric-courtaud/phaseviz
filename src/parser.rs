@@ -114,7 +114,7 @@ impl Profile {
         match line.as_rule() {
                 Rule::file_line => {
                     let filename = String::from(line.into_inner().as_str());
-                    let has_debug_info = filename == "???";
+                    let has_debug_info = filename != "???";
                     ret = Some(FileSection::new(filename, has_debug_info));
                 }
 

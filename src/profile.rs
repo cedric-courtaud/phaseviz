@@ -99,7 +99,7 @@ impl FileSection {
         }
     }
 
-    pub fn sync_with_source_code(&mut self){
+    pub fn sync_with_fs(&mut self){
         if !self.has_debug_info {
             return
         }
@@ -204,7 +204,7 @@ impl Debug for Profile {
 impl Profile {
     pub fn sync_with_fs(&mut self) {
         for section in &mut self.file_sections {
-            section.sync_with_source_code();
+            section.sync_with_fs();
         }
     }
 }
@@ -232,44 +232,55 @@ mod tests {
         let file = String::from("assets/test/hello/hello.c");
         let func = Rc::new(String::from("main"));
 
-        let mut files = FileSection::new(file.clone(), true);
+        let mut example = FileSection::new(file.clone(), true);
         
-        files.lines.insert(CodeLine::new(9,  (0x1089ac, 0x1089c4), None, Some(func.clone()), true, vec!(0)));
-        files.lines.insert(CodeLine::new(11, (0x1089c6, 0x1089cb), None, Some(func.clone()), true, vec!(0)));
-        files.lines.insert(CodeLine::new(13, (0x1089d1, 0x108a29), None, Some(func.clone()), true, vec!(0, 1)));
-        files.lines.insert(CodeLine::new(15, (0x108a2d, 0x108a34), None, Some(func.clone()), true, vec!(1)));
-        files.lines.insert(CodeLine::new(19, (0x108a4e, 0x108a55), None, Some(func.clone()), true, vec!(1)));
+        example.lines.insert(CodeLine::new(9,  (0x1089ac, 0x1089c4), None, Some(func.clone()), true, vec!(0)));
+        example.lines.insert(CodeLine::new(11, (0x1089c6, 0x1089cb), None, Some(func.clone()), true, vec!(0)));
+        example.lines.insert(CodeLine::new(13, (0x1089d1, 0x108a29), None, Some(func.clone()), true, vec!(0, 1)));
+        example.lines.insert(CodeLine::new(15, (0x108a2d, 0x108a34), None, Some(func.clone()), true, vec!(1)));
+        example.lines.insert(CodeLine::new(19, (0x108a4e, 0x108a55), None, Some(func.clone()), true, vec!(1)));
 
-        let mut expected: Vec<CodeLine> = vec!();
+        let mut expected = FileSection::new(file.clone(), true);
         let file_content = std::fs::read_to_string(&file).unwrap();
         let file_lines: Vec<&str> = file_content.lines().collect();
         
-        expected.push(CodeLine::new(1,  (0, 0), Some(String::from(file_lines[0].clone())), None, true, vec!()));
-        expected.push(CodeLine::new(2,  (0, 0), Some(String::from(file_lines[1].clone())), None, true, vec!()));
-        expected.push(CodeLine::new(3,  (0, 0), Some(String::from(file_lines[2].clone())), None, true, vec!()));
-        expected.push(CodeLine::new(4,  (0, 0), Some(String::from(file_lines[3].clone())), None, true, vec!()));
-        expected.push(CodeLine::new(5,  (0, 0), Some(String::from(file_lines[4].clone())), None, true, vec!()));
-        expected.push(CodeLine::new(6,  (0, 0), Some(String::from(file_lines[5].clone())), None, true, vec!()));
-        expected.push(CodeLine::new(7,  (0, 0), Some(String::from(file_lines[6].clone())), None, true, vec!()));
-        expected.push(CodeLine::new(8,  (0, 0), Some(String::from(file_lines[7].clone())), None, true, vec!()));
-        expected.push(CodeLine::new(9,  (0x1089ac, 0x1089c4), Some(String::from(file_lines[8].clone())), Some(func.clone()), true, vec!(0)));
-        expected.push(CodeLine::new(10, (0, 0), Some(String::from(file_lines[9].clone())), None, true, vec!()));
-        expected.push(CodeLine::new(11, (0x1089c6, 0x1089cb), Some(String::from(file_lines[10].clone())), Some(func.clone()), true, vec!(0)));
-        expected.push(CodeLine::new(12, (0, 0), Some(String::from(file_lines[11].clone())), None, true, vec!()));
-        expected.push(CodeLine::new(13, (0x1089d1, 0x108a29), Some(String::from(file_lines[12].clone())), Some(func.clone()), true, vec!(0,1)));
-        expected.push(CodeLine::new(14, (0, 0), Some(String::from(file_lines[13].clone())), None,true, vec!()));
-        expected.push(CodeLine::new(15, (0x108a2d, 0x108a34), Some(String::from(file_lines[14].clone())), Some(func.clone()), true, vec!(1)));
-        expected.push(CodeLine::new(16, (0, 0), Some(String::from(file_lines[15].clone())), None, true, vec!()));
-        expected.push(CodeLine::new(17, (0, 0), Some(String::from(file_lines[16].clone())), None, true, vec!()));
-        expected.push(CodeLine::new(18, (0, 0), Some(String::from(file_lines[17].clone())), None, true, vec!()));
-        expected.push(CodeLine::new(19, (0x108a4e, 0x108a55), Some(String::from(file_lines[18].clone())), Some(func.clone()), true, vec!(1)));
-        expected.push(CodeLine::new(20, (0, 0), Some(String::from(file_lines[19].clone())), None, true, vec!()));
-        expected.push(CodeLine::new(21, (0, 0), Some(String::from(file_lines[20].clone())), None, true, vec!()));
-        expected.push(CodeLine::new(22, (0, 0), Some(String::from(file_lines[21].clone())), None, true, vec!()));
-        expected.push(CodeLine::new(23, (0, 0), Some(String::from(file_lines[22].clone())), None, true, vec!()));
-        expected.push(CodeLine::new(24, (0, 0), Some(String::from(file_lines[23].clone())), None, true, vec!()));
-        expected.push(CodeLine::new(25, (0, 0), Some(String::from(file_lines[24].clone())), None, true, vec!()));
+        expected.lines.insert(CodeLine::new(1,  (0, 0), Some(String::from(file_lines[0].clone())), None, true, vec!()));
+        expected.lines.insert(CodeLine::new(2,  (0, 0), Some(String::from(file_lines[1].clone())), None, true, vec!()));
+        expected.lines.insert(CodeLine::new(3,  (0, 0), Some(String::from(file_lines[2].clone())), None, true, vec!()));
+        expected.lines.insert(CodeLine::new(4,  (0, 0), Some(String::from(file_lines[3].clone())), None, true, vec!()));
+        expected.lines.insert(CodeLine::new(5,  (0, 0), Some(String::from(file_lines[4].clone())), None, true, vec!()));
+        expected.lines.insert(CodeLine::new(6,  (0, 0), Some(String::from(file_lines[5].clone())), None, true, vec!()));
+        expected.lines.insert(CodeLine::new(7,  (0, 0), Some(String::from(file_lines[6].clone())), None, true, vec!()));
+        expected.lines.insert(CodeLine::new(8,  (0, 0), Some(String::from(file_lines[7].clone())), None, true, vec!()));
+        expected.lines.insert(CodeLine::new(9,  (0x1089ac, 0x1089c4), Some(String::from(file_lines[8].clone())), Some(func.clone()), true, vec!(0)));
+        expected.lines.insert(CodeLine::new(10, (0, 0), Some(String::from(file_lines[9].clone())), None, true, vec!()));
+        expected.lines.insert(CodeLine::new(11, (0x1089c6, 0x1089cb), Some(String::from(file_lines[10].clone())), Some(func.clone()), true, vec!(0)));
+        expected.lines.insert(CodeLine::new(12, (0, 0), Some(String::from(file_lines[11].clone())), None, true, vec!()));
+        expected.lines.insert(CodeLine::new(13, (0x1089d1, 0x108a29), Some(String::from(file_lines[12].clone())), Some(func.clone()), true, vec!(0,1)));
+        expected.lines.insert(CodeLine::new(14, (0, 0), Some(String::from(file_lines[13].clone())), None,true, vec!()));
+        expected.lines.insert(CodeLine::new(15, (0x108a2d, 0x108a34), Some(String::from(file_lines[14].clone())), Some(func.clone()), true, vec!(1)));
+        expected.lines.insert(CodeLine::new(16, (0, 0), Some(String::from(file_lines[15].clone())), None, true, vec!()));
+        expected.lines.insert(CodeLine::new(17, (0, 0), Some(String::from(file_lines[16].clone())), None, true, vec!()));
+        expected.lines.insert(CodeLine::new(18, (0, 0), Some(String::from(file_lines[17].clone())), None, true, vec!()));
+        expected.lines.insert(CodeLine::new(19, (0x108a4e, 0x108a55), Some(String::from(file_lines[18].clone())), Some(func.clone()), true, vec!(1)));
+        expected.lines.insert(CodeLine::new(20, (0, 0), Some(String::from(file_lines[19].clone())), None, true, vec!()));
+        expected.lines.insert(CodeLine::new(21, (0, 0), Some(String::from(file_lines[20].clone())), None, true, vec!()));
+        expected.lines.insert(CodeLine::new(22, (0, 0), Some(String::from(file_lines[21].clone())), None, true, vec!()));
+        expected.lines.insert(CodeLine::new(23, (0, 0), Some(String::from(file_lines[22].clone())), None, true, vec!()));
+        expected.lines.insert(CodeLine::new(24, (0, 0), Some(String::from(file_lines[23].clone())), None, true, vec!()));
+        expected.lines.insert(CodeLine::new(25, (0, 0), Some(String::from(file_lines[24].clone())), None, true, vec!()));
 
-        files.sync_with_source_code();
+        let mut p1 = Profile{
+            checkpoints: vec!(),
+            file_sections: vec!(example)
+        };
+
+        let p2 = Profile{
+            checkpoints: vec!(),
+            file_sections: vec!(expected)
+        };
+
+        p1.sync_with_fs();
+        assert_eq!(p1, p2);
     }
 }

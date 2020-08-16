@@ -3,7 +3,7 @@
 1 -> Before_hello
 
 [met checkpoint]
-fl=hello/hello.c
+fl=assets/test/hello/hello.c
 fn=main
 9 [0x1089ac;0x1089c4] -> 0
 11 [0x1089c6;0x1089cb] -> 0
