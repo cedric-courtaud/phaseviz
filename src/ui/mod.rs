@@ -17,9 +17,9 @@ fn render_checkpoints<'a>(item: &'a ProfileItem) -> Spans<'a> {
             ])
         }
 
-        ProfileItem::FunctionLine(_) => {
+        ProfileItem::FunctionLine(l) => {
             return Spans::from(vec![
-                Span::raw("CHECKPOINT FUNCTION PLACEHOLDER")
+                Span::raw(format!("{:?}", l.checkpoints))
             ])
         }
 
@@ -32,6 +32,10 @@ fn render_checkpoints<'a>(item: &'a ProfileItem) -> Spans<'a> {
 
 }
 
+fn line_nb_col<'a>(n: usize) -> Span<'a> {
+    Span::styled(format!("{:5} ", n), Style::default().bg(Color::DarkGray).add_modifier(Modifier::ITALIC))
+}
+
 fn render_code_line <'a>(item: &'a ProfileItem) -> Spans<'a> {
     match item {
         ProfileItem::FileHeader(f) => {
@@ -41,24 +45,18 @@ fn render_code_line <'a>(item: &'a ProfileItem) -> Spans<'a> {
             ])
         }
 
-        ProfileItem::FunctionLine(_) => {
+        ProfileItem::FunctionLine(l) => {
             return Spans::from(vec![
-
-                Span::raw("CODE FUNCTION PLACEHOLDER")
+                line_nb_col(l.nb),
+                Span::styled(format!("  in function: "), Style::default().fg(Color::Gray).add_modifier(Modifier::ITALIC)),
+                Span::styled(format!("{}", l.function.as_ref().unwrap()), Style::default().fg(Color::Gray).add_modifier(Modifier::ITALIC).add_modifier(Modifier::BOLD))
             ])
         }
 
         ProfileItem::CodeLine(l) => {
-            let line: Span;
-
-            match l.line_content.as_ref() {
-                Some(l) => line = Span::raw(format!("  {}", l)),
-                None => line = Span::styled(format!("  fn={}", l.function.as_ref().unwrap()), Style::default().fg(Color::Gray).add_modifier(Modifier::ITALIC))
-            }
-
             return Spans::from(vec![
-                Span::styled(format!("{:5} ", l.nb), Style::default().bg(Color::DarkGray).add_modifier(Modifier::ITALIC)),
-                line
+                line_nb_col(l.nb),
+                Span::raw(format!("  {}", l.line_content.as_ref().unwrap())),
             ])
         }
     }
