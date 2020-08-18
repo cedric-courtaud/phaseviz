@@ -20,7 +20,23 @@ pub enum ProfileItem<'a> {
 
 impl<'a> fmt::Debug for ProfileItem<'a>{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("ProfileItem").finish()
+        match self {
+            ProfileItem::FileHeader(h) => {
+                return f.debug_struct("FileHeader")
+                        .field("inner", h)
+                        .finish()
+            },
+            ProfileItem::FunctionLine(l) => {
+                return f.debug_struct("FunctionLine")
+                        .field("inner", l)
+                        .finish()
+            },
+            ProfileItem::CodeLine(l) => {
+                return f.debug_struct("CodeLine")
+                        .field("inner", l)
+                        .finish()
+            }
+        }
     }
 }
 
@@ -81,7 +97,10 @@ impl<'a> Iterator for ProfileItemIterator<'a> {
 
         match self.line_iterator.as_mut().unwrap().next() {
             Some(line) => {
-                return Some(ProfileItem::CodeLine(line))
+                match line.line_content.as_ref() {
+                    Some(_) => return Some(ProfileItem::CodeLine(line)),
+                    None => return Some(ProfileItem::FunctionLine(line)),
+                }
             }
 
             None => return self.move_to_next_file()
@@ -192,13 +211,16 @@ mod tests {
 
         let expected = vec![
             ProfileItem::FileHeader(&profile.file_sections.first().unwrap()),
-            ProfileItem::CodeLine(lines[0]),
-            ProfileItem::CodeLine(lines[1]),
-            ProfileItem::CodeLine(lines[2]),
-            ProfileItem::CodeLine(lines[3]),
-            ProfileItem::CodeLine(lines[4]),
+            ProfileItem::FunctionLine(lines[0]),
+            ProfileItem::FunctionLine(lines[1]),
+            ProfileItem::FunctionLine(lines[2]),
+            ProfileItem::FunctionLine(lines[3]),
+            ProfileItem::FunctionLine(lines[4]),
         ];
 
-        assert_eq!(items, expected);
+        for (i, item) in items.iter().enumerate() {
+            assert_eq!(&expected[i], item)
+        }
+
     }
 }

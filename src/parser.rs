@@ -5,6 +5,7 @@ use std::path::Path;
 use std::fs::{read_to_string};
 use std::u64;
 use std::rc::Rc;
+use std::collections::BTreeSet;
 
 #[derive(Parser)]
 #[grammar = "profile.pest"]
@@ -40,7 +41,7 @@ impl Profile {
         let mut min_addr:u64 = 0;
         let mut max_addr:u64 = 0;
         let mut line_nb:usize = 0;
-        let mut checkpoints: Option<Vec<u32>> = None;
+        let mut checkpoints: Option<BTreeSet<u32>> = None;
 
         for field in line.into_inner() {
             match field.as_rule() {
@@ -179,11 +180,11 @@ mod tests {
 
         let mut files = FileSection::new(file, true);
         
-        files.lines.insert(CodeLine::new(9,  (0x1089ac, 0x1089c4), None, Some(func.clone()), true, vec!(0)));
-        files.lines.insert(CodeLine::new(11, (0x1089c6, 0x1089cb), None, Some(func.clone()), true, vec!(0)));
-        files.lines.insert(CodeLine::new(13, (0x1089d1, 0x108a29), None, Some(func.clone()), true, vec!(0, 1)));
-        files.lines.insert(CodeLine::new(15, (0x108a2d, 0x108a34), None, Some(func.clone()), true, vec!(1)));
-        files.lines.insert(CodeLine::new(19, (0x108a4e, 0x108a55), None, Some(func.clone()), true, vec!(1)));
+        files.lines.insert(CodeLine::new(9,  (0x1089ac, 0x1089c4), None, Some(func.clone()), true, bt_set!(0)));
+        files.lines.insert(CodeLine::new(11, (0x1089c6, 0x1089cb), None, Some(func.clone()), true, bt_set!(0)));
+        files.lines.insert(CodeLine::new(13, (0x1089d1, 0x108a29), None, Some(func.clone()), true, bt_set!(0, 1)));
+        files.lines.insert(CodeLine::new(15, (0x108a2d, 0x108a34), None, Some(func.clone()), true, bt_set!(1)));
+        files.lines.insert(CodeLine::new(19, (0x108a4e, 0x108a55), None, Some(func.clone()), true, bt_set!(1)));
         
         Profile {
             checkpoints: vec!(
