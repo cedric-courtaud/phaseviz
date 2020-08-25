@@ -240,6 +240,7 @@ mod tests {
         assert!(l1 < l3);
         assert!(l4 < l5);
     }
+
     #[test]
     fn profile_expansion() {
         let file = String::from("assets/test/hello/hello.c");
