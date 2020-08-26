@@ -66,7 +66,7 @@ fn checkpoints_header(checkpoints: &Vec<u32>, width: u16) -> String {
     ret
 }
 
-fn render_checkpoints<'a>(item: &'a ProfileItem, checkpoints: &Vec<u32>, cell_width: u16) -> Spans<'a> {
+fn checkpoints_line<'a>(item: &'a ProfileItem, checkpoints: &Vec<u32>, cell_width: u16) -> Spans<'a> {
     let mut spans = vec!();
 
     for checkpoint in checkpoints {
@@ -119,7 +119,7 @@ impl<'a> Panel<'a> for CheckpointPanel<'a> {
 
 
         for item in items.as_ref().clone() {
-            checkpoint_lines.push(render_checkpoints(item, &checkpoints, cell_width as u16));
+            checkpoint_lines.push(checkpoints_line(item, &checkpoints, cell_width as u16));
         }
         
         let p = Paragraph::new(Text::from(checkpoint_lines)).block(block);
