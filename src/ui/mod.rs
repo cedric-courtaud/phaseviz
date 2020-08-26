@@ -43,8 +43,6 @@ pub trait Panel<'a> {
     fn render_header<B, I>(&'a self, f: &mut Frame<B>, items: I, ctx: &Self::Context) where B: Backend, I: AsRef<[ProfileItem<'a>]>;
     fn render_body<B, I>(&'a self, f: &mut Frame<B>, items: I, ctx: &Self::Context) where B: Backend, I: AsRef<[ProfileItem<'a>]>;
     fn render_help<B, I>(&'a self, f: &mut Frame<B>, items:I, ctx: &Self::Context) where B: Backend, I: AsRef<[ProfileItem<'a>]>;
-    // fn render_body<B, I>(&'a self,f: &mut Frame<B>, items: I, rect: Rect, block: Block) where B: Backend, I: AsRef<[ProfileItem<'a>]>;
-    // fn render_help<B>(&'a self,f: &mut Frame<B>, rect: Rect, block: Block) where B: Backend;
 }
 
 pub fn render_panel<'a, P, B, T>(p: &'a mut P, f: &mut Frame<B>, rect: Rect, items: T) 
