@@ -25,13 +25,29 @@ pub fn help_widget<'a, T: AsRef<[(&'a str, &'a str)]>>(items: T) -> Paragraph<'a
         Paragraph::new(Spans::from(spans)).block(block)
 }
 
-pub trait Panel<'a> {
-    fn render_header<B, I>(&'a self,f: &mut Frame<B>, items: I, rect: Rect, block: Block) where B: Backend, I: AsRef<[ProfileItem<'a>]>;
-    fn render_body<B, I>(&'a self,f: &mut Frame<B>, items: I, rect: Rect, block: Block) where B: Backend, I: AsRef<[ProfileItem<'a>]>;
-    fn render_help<B>(&'a self,f: &mut Frame<B>, rect: Rect, block: Block) where B: Backend;
+pub struct PanelPart<'a> {
+    rect: Rect,
+    block: Block<'a>,
 }
 
-pub fn render_panel<'a, P, B, T>(p: &'a P, f: &mut Frame<B>, rect: Rect, items: T) 
+pub struct PanelBox<'a> {
+    header: PanelPart<'a>,
+    body:   PanelPart<'a>,
+    footer: PanelPart<'a>,
+}
+
+pub trait Panel<'a> {
+    type Context;
+
+    fn get_context<I>(&'a self, items: I, p: PanelBox<'a>) -> Self::Context where I: AsRef<[ProfileItem<'a>]>;
+    fn render_header<B, I>(&'a self, f: &mut Frame<B>, items: I, ctx: &Self::Context) where B: Backend, I: AsRef<[ProfileItem<'a>]>;
+    fn render_body<B, I>(&'a self, f: &mut Frame<B>, items: I, ctx: &Self::Context) where B: Backend, I: AsRef<[ProfileItem<'a>]>;
+    fn render_help<B, I>(&'a self, f: &mut Frame<B>, items:I, ctx: &Self::Context) where B: Backend, I: AsRef<[ProfileItem<'a>]>;
+    // fn render_body<B, I>(&'a self,f: &mut Frame<B>, items: I, rect: Rect, block: Block) where B: Backend, I: AsRef<[ProfileItem<'a>]>;
+    // fn render_help<B>(&'a self,f: &mut Frame<B>, rect: Rect, block: Block) where B: Backend;
+}
+
+pub fn render_panel<'a, P, B, T>(p: &'a mut P, f: &mut Frame<B>, rect: Rect, items: T) 
 where P: Panel<'a>, B: tui::backend::Backend,T: AsRef<[ProfileItem<'a>]> {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
@@ -53,10 +69,18 @@ where P: Panel<'a>, B: tui::backend::Backend,T: AsRef<[ProfileItem<'a>]> {
         let main_block   = Block::default().borders(Borders::NONE);
         let header_block = Block::default().borders(Borders::BOTTOM).style(Style::default());
         let help_block = Block::default().borders(Borders::TOP);
+
+        let panel_box = PanelBox {
+            header: PanelPart{rect: header_chunk, block: header_block},
+            body: PanelPart{rect: main_chunk, block: main_block},
+            footer: PanelPart{rect: help_chunk, block: help_block},
+        };
+
+        let ctx = p.get_context(&items, panel_box);
         
-        p.render_body(f, &items, main_chunk, main_block);
-        p.render_header(f, &items, header_chunk, header_block);
-        p.render_help(f, help_chunk, help_block);
+        p.render_body(f,  &items, &ctx);
+        p.render_header(f, &items, &ctx);
+        p.render_help(f, &items, &ctx);
 }
 
 pub fn draw<B: tui::backend::Backend>(f: &mut Frame<B>, app: &mut App) {
@@ -132,9 +156,9 @@ pub fn draw<B: tui::backend::Backend>(f: &mut Frame<B>, app: &mut App) {
         let checkpoints_outter_block = Block::default().borders(Borders::BOTTOM | Borders::TOP);
         f.render_widget(checkpoints_outter_block, checkpoints_chunk);
 
-        let checkpoint_panel = checkpoints::CheckpointPanel::new(vec!(("H", "Help")));
-        let source_panel = source::SourcePanel::new(vec!(("H", "Help")));
+        let mut checkpoint_panel = checkpoints::CheckpointPanel::new(vec!(("H", "Help")));
+        let mut source_panel = source::SourcePanel::new(vec!(("H", "Help")));
 
-        render_panel(&checkpoint_panel, f, checkpoints_chunk, items);
-        render_panel(&source_panel, f, source_chunk, items);
+        render_panel(&mut checkpoint_panel, f, checkpoints_chunk, items);
+        render_panel(&mut source_panel, f, source_chunk, items);
 }
