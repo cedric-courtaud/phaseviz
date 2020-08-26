@@ -6,87 +6,85 @@ use tui::{
     text::{Text, Span, Spans},
     backend::Backend,
     Frame,
-    style::{Style, Color, Modifier}
+    style::{Style, Modifier}
 };
 
 use super::{Panel, help_widget};
 
-fn render_checkpoints<'a>(item: &'a ProfileItem) -> Spans<'a> {
-    match item {
-        ProfileItem::FileHeader(_) => {
-            return Spans::from(vec![
-                Span::raw("CHECKPOINT FILE PLACEHOLDER")
-            ])
-        }
+use std::collections::btree_set::BTreeSet;
 
-        ProfileItem::FunctionLine(l) => {
-            return Spans::from(vec![
-                Span::raw(format!("{:?}", l.checkpoints))
-            ])
-        }
-
-        ProfileItem::CodeLine(l) => {
-            return Spans::from(vec![
-                Span::raw(format!("{:?}", l.checkpoints))
-            ])
+fn get_checkpoints <'a,T: AsRef<[ProfileItem<'a>]>>(items: T) -> Vec<u32> {
+    let mut checkpoints = BTreeSet::new();
+    
+    for item in items.as_ref() {
+        match item {
+             ProfileItem::FileHeader(f) => f.get_checkpoints().iter().for_each(|c| {checkpoints.insert(*c);}),
+             ProfileItem::CodeLine(l) => l.checkpoints.iter().for_each(|c| {checkpoints.insert(*c);}),
+             ProfileItem::FunctionLine(l) => l.checkpoints.iter().for_each(|c| {checkpoints.insert(*c);}),
         }
     }
 
+    checkpoints.iter().cloned().collect()
 }
 
-pub fn draw_checkpoints<'a, B: tui::backend::Backend, T: AsRef<[ProfileItem<'a>]>>(f: &mut Frame<B>, rect: Rect, items: T) {
-        let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints(
-                [
-                    Constraint::Length(2),
-                    Constraint::Min(0),
-                    Constraint::Length(1),
-                ]
-                .as_ref(),
-            )
-            .margin(1)
-            .split(rect);
+fn number_of_digits(number: u32) -> usize {
+    let mut ret = 0;
+    let mut n = number;
 
-        let header_chunk = chunks[0];
-        let main_chunk = chunks[1];
-        let info_chunk = chunks[2];
+    while n > 0 {
+        n   /= ((ret + 1) * 10) as u32;
+        ret += 1;
+    }
 
-        let checkpoint_lines:Vec<Spans> = items.as_ref()
-                                               .iter()
-                                               .map(|item| render_checkpoints(item))
-                                               .collect();
-
-        let main_block   = Block::default().borders(Borders::NONE);
-        let header_block = Block::default().borders(Borders::BOTTOM).style(Style::default());
-        let info_block   = Block::default().borders(Borders::TOP);
-        
-        let total = checkpoint_lines.len();
-        let main = Paragraph::new(Text::from(checkpoint_lines)).block(main_block);
-        let header = Paragraph::new(Text::from("PLACEHOLDER")).block(header_block);
-
-        f.render_widget(main, main_chunk);
-        f.render_widget(header, header_chunk);
-        draw_help(f, info_chunk, [("H","Help")])
+    ret
 }
 
+fn format_header_cell(id: u32, cell_width: usize) -> String {
+    format!("{:^1$}", id, cell_width)
+}
 
+fn format_cell<'a>(met: bool, cell_width: usize) -> Span<'a> {
+    let status_char = if met {"◼︎"} else {"◻︎"};
 
+    Span::raw(format!("{:^1$}", status_char, cell_width))
+}
 
-pub fn draw_help<'a, B: tui::backend::Backend, T: AsRef<[(&'a str, &'a str)]>>(f: &mut Frame<B>, rect: Rect, items: T) {
-        let block   = Block::default().borders(Borders::TOP).style(Style::default());
-        let mut spans: Vec<Span> = vec!(Span::from(""));
+fn checkpoints_header(checkpoints: &Vec<u32>, width: u16) -> String {
+    let mut ret = String::from("");
 
-        for i in items.as_ref() {
-            spans.push(Span::styled(format!("[{}] ", i.0), Style::default().add_modifier(Modifier::BOLD)));
-            spans.push(Span::from(i.1));
+    if checkpoints.len() > 0 {
+        let max_id = checkpoints.last().unwrap();
+        let max_digits = number_of_digits(*max_id);
+        let cell_width = width as usize / (max_digits + 2);
+
+        for checkpoint in checkpoints {
+            ret.push_str(&format_header_cell(*checkpoint, cell_width));
         }
 
-        let main = Paragraph::new(Spans::from(spans)).block(block);
+    }
 
-        f.render_widget(main, rect);
+    ret
 }
 
+fn render_checkpoints<'a>(item: &'a ProfileItem, checkpoints: &Vec<u32>, cell_width: u16) -> Spans<'a> {
+    let mut spans = vec!();
+
+    for checkpoint in checkpoints {
+        let met = match item {
+            ProfileItem::FileHeader(f) => {
+                f.get_checkpoints().contains(checkpoint)
+            }
+
+            ProfileItem::FunctionLine(l) | ProfileItem::CodeLine(l) => {
+                l.checkpoints.contains(checkpoint)
+            }
+        };
+
+        spans.push(format_cell(met, cell_width as usize));
+    }
+
+    Spans::from(spans)
+}
 
 pub struct CheckpointPanel<'a> {
     help: Vec<(&'a str, &'a str)>
@@ -101,16 +99,27 @@ impl<'a> CheckpointPanel<'a> {
 }
 
 impl<'a> Panel<'a> for CheckpointPanel<'a> {
-    fn render_header<B, I>(&'a self,f: &mut Frame<B>, _items: I, rect: Rect, _block: Block) where B: Backend, I: AsRef<[ProfileItem<'a>]>{
-        let p = Paragraph::new(Text::from("PLACEHOLDER"));
+    fn render_header<B, I>(&'a self,f: &mut Frame<B>, items: I, rect: Rect, block: Block) where B: Backend, I: AsRef<[ProfileItem<'a>]>{
+        let checkpoints = get_checkpoints(items);
+        let checkpoints_str = checkpoints_header(&checkpoints, block.inner(rect).width);
+        let p = Paragraph::new(Text::from(checkpoints_str.as_str())).block(block);
+
         f.render_widget(p, rect);
     }
 
     fn render_body<B, I>(&'a self,f: &mut Frame<B>, items: I, rect: Rect, block: Block) where B: Backend, I: AsRef<[ProfileItem<'a>]>{
         let mut checkpoint_lines:Vec<Spans> = vec!();
+        
+        let checkpoints = get_checkpoints(&items);
+        let max_id = checkpoints.last().unwrap();
+        let max_digits = number_of_digits(*max_id);
+
+        let width = block.inner(rect).width;
+        let cell_width = width as usize / (max_digits + 2);
+
 
         for item in items.as_ref().clone() {
-            checkpoint_lines.push(render_checkpoints(item));
+            checkpoint_lines.push(render_checkpoints(item, &checkpoints, cell_width as u16));
         }
         
         let p = Paragraph::new(Text::from(checkpoint_lines)).block(block);

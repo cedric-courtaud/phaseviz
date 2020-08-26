@@ -126,10 +126,10 @@ pub fn draw<B: tui::backend::Backend>(f: &mut Frame<B>, app: &mut App) {
 
         let info = Paragraph::new(info_text).block(info_block);
         
-        let source_outter_block = Block::default().borders(Borders::NONE);
+        let source_outter_block = Block::default().borders(Borders::BOTTOM | Borders::TOP);
         f.render_widget(source_outter_block, source_chunk);
         
-        let checkpoints_outter_block = Block::default().borders(Borders::NONE);
+        let checkpoints_outter_block = Block::default().borders(Borders::BOTTOM | Borders::TOP);
         f.render_widget(checkpoints_outter_block, checkpoints_chunk);
 
         let checkpoint_panel = checkpoints::CheckpointPanel::new(vec!(("H", "Help")));
