@@ -1,7 +1,6 @@
 use crate::profile::{Profile, FileSection, CodeLine};
 use std::io::{stdout, stdin};
 use std::fmt;
-use std::collections::BTreeSet;
 
 use termion::{
     event::Key,
