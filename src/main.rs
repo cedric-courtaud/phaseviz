@@ -10,6 +10,7 @@ mod profile;
 mod parser;
 mod app;
 mod ui;
+mod p2;
 
 fn main() {
     let mut profile = profile::Profile::parse("assets/test/memviz.chekpoint.8446");
