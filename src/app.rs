@@ -1,4 +1,4 @@
-use crate::profile::{Profile, FileSection, CodeLine};
+use crate::profile::{Profile, ProfileItem, FileInfo, LineInfo};
 use std::io::{stdout, stdin};
 use std::fmt;
 
@@ -11,113 +11,9 @@ use termion::{
 use tui::backend::TermionBackend;
 use tui::Terminal;
 
-#[allow(dead_code)]
-pub enum ProfileItem<'a> {
-    FileHeader(&'a FileSection),
-    CodeLine(&'a CodeLine),
-    FunctionLine(&'a CodeLine)
-}
-
-impl<'a> fmt::Debug for ProfileItem<'a>{
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            ProfileItem::FileHeader(h) => {
-                return f.debug_struct("FileHeader")
-                        .field("inner", h)
-                        .finish()
-            },
-            ProfileItem::FunctionLine(l) => {
-                return f.debug_struct("FunctionLine")
-                        .field("inner", l)
-                        .finish()
-            },
-            ProfileItem::CodeLine(l) => {
-                return f.debug_struct("CodeLine")
-                        .field("inner", l)
-                        .finish()
-            }
-        }
-    }
-}
-
-
-impl<'a> PartialEq for ProfileItem<'a> {
-    fn eq(&self, other: &ProfileItem<'_>) -> bool{
-        match (self, other) {
-            (ProfileItem::FileHeader(f1), ProfileItem::FileHeader(f2)) => {
-                return f1 == f2
-            }
-            (ProfileItem::FunctionLine(f1), ProfileItem::FunctionLine(f2)) => {
-                return f1 == f2
-            }
-            (ProfileItem::CodeLine(l1), ProfileItem::CodeLine(l2)) => {
-                return l1 == l2
-            }
-            (_,_) => return false
-        }
-    }
-}
-
-
-pub struct ProfileItemIterator<'a> {
-    line_iterator: Option<std::collections::btree_set::Iter<'a, CodeLine>>,
-    file_iterator: std::slice::Iter<'a, FileSection>,
-    curr_file: Option<&'a FileSection>,
-}
-
-impl<'a> ProfileItemIterator<'a> {
-    fn move_to_next_file(&mut self) -> Option<ProfileItem<'a>> {
-        self.curr_file = self.file_iterator.next();
-
-        match self.curr_file {
-            Some(f) => {
-                self.line_iterator = Some(f.lines.iter());
-                return Some(ProfileItem::FileHeader(f))
-            }
-
-            None => return None
-        }
-    }
-
-    fn new(profile: &'a Profile) -> Self {
-        ProfileItemIterator {
-            file_iterator: profile.file_sections.iter(),
-            curr_file: None,
-            line_iterator: None,
-        }
-    }
-}
-
-impl<'a> Iterator for ProfileItemIterator<'a> {
-    type Item = ProfileItem<'a>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.curr_file == None {
-            return self.move_to_next_file();
-        }
-
-        match self.line_iterator.as_mut().unwrap().next() {
-            Some(line) => {
-                match line.line_content.as_ref() {
-                    Some(_) => return Some(ProfileItem::CodeLine(line)),
-                    None => return Some(ProfileItem::FunctionLine(line)),
-                }
-            }
-
-            None => return self.move_to_next_file()
-        }
-    }
-}
-
-impl<'a> Profile {
-    pub fn iter_items(&'a self) -> ProfileItemIterator<'a> {
-        ProfileItemIterator::new(self)
-    }
-}
-
 pub struct App<'a> {
     pub profile: &'a Profile,
-    pub items: Vec<ProfileItem<'a>>,
+    pub items: Vec<&'a ProfileItem>,
     y_pos: usize,
     height: u16,
     should_quit: bool,
@@ -174,7 +70,7 @@ impl<'a> App<'a> {
         App{
             profile: profile,
             should_quit: false,
-            items: profile.iter_items().collect(),
+            items: profile.items.iter().collect(),
             y_pos: 0,
             height: 0,
         }
@@ -199,7 +95,8 @@ impl<'a> App<'a> {
 
 #[cfg(test)]
 mod tests {
-    use crate::profile::{Profile, CodeLine};
+    /*
+    use crate::profile::{Profile, FileInfo, ProfileItem, LineInfo};
     use crate::app::{ProfileItem};
 
     #[test]
@@ -222,6 +119,5 @@ mod tests {
         for (i, item) in items.iter().enumerate() {
             assert_eq!(&expected[i], item)
         }
-
-    }
+    }*/
 }

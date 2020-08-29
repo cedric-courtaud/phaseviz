@@ -1,8 +1,7 @@
-use crate::app::{ProfileItem};
+use crate::profile::{ProfileItem};
 
 use tui::{
-    layout::{Constraint, Direction, Layout, Rect},
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Paragraph},
     text::{Text, Span, Spans},
     backend::Backend,
     Frame,
@@ -17,29 +16,28 @@ fn line_nb_col<'a>(n: usize) -> Span<'a> {
 
 fn render_code_line <'a>(item: &'a ProfileItem) -> Spans<'a> {
     match item {
-        ProfileItem::FileHeader(f) => {
-            return Spans::from(vec![
+        ProfileItem::File(f) => {
+            Spans::from(vec!(
                 Span::styled(" [fl] ", Style::default().bg(Color::Green)),
-                Span::styled(format!("  {}", f.name), Style::default().add_modifier(Modifier::BOLD).add_modifier(Modifier::ITALIC))
-            ])
-        }
-
-        ProfileItem::FunctionLine(l) => {
-            return Spans::from(vec![
+                Span::styled(format!("  {:?}", f.borrow().path.expand()), Style::default().add_modifier(Modifier::BOLD).add_modifier(Modifier::ITALIC))
+            ))
+        } 
+        ProfileItem::Line(f,l) => {
+            if l.line_content.is_some() {
+                Spans::from(vec!(
+                    line_nb_col(l.nb),
+                    Span::raw(format!("  {}", l.line_content.as_ref().unwrap())),
+                ))
+            }
+            else {
+            Spans::from(vec![
                 line_nb_col(l.nb),
                 Span::styled(format!("  in function: "), Style::default().fg(Color::Gray).add_modifier(Modifier::ITALIC)),
                 Span::styled(format!("{}", l.function.as_ref().unwrap()), Style::default().fg(Color::Gray).add_modifier(Modifier::ITALIC).add_modifier(Modifier::BOLD))
             ])
-        }
-
-        ProfileItem::CodeLine(l) => {
-            return Spans::from(vec![
-                line_nb_col(l.nb),
-                Span::raw(format!("  {}", l.line_content.as_ref().unwrap())),
-            ])
+            }
         }
     }
-
 }
 
 pub struct SourcePanel<'a> {
@@ -61,18 +59,18 @@ impl<'a> SourcePanel<'a> {
 impl<'a> Panel<'a> for SourcePanel<'a> {
     type Context = SourceContext<'a>;
 
-    fn get_context<I>(&'a self, _items: I, p: PanelBox<'a>) -> Self::Context where I: AsRef<[ProfileItem<'a>]>{
+    fn get_context<I>(&'a self, _items: I, p: PanelBox<'a>) -> Self::Context where I: AsRef<[&'a ProfileItem]>{
         SourceContext {
             pbox: p
         }
     }
     
-    fn render_header<B, I>(&'a self, _f: &mut Frame<B>, _items: I, _ctx: &Self::Context) where B: Backend, I: AsRef<[ProfileItem<'a>]> {
-
+    fn render_header<B, I>(&'a self, f: &mut Frame<B>, _items: I, ctx: &Self::Context) where B: Backend, I: AsRef<[&'a ProfileItem]> {
+        let p = Paragraph::new(Text::from("")).block(ctx.pbox.header.block.clone());
+        f.render_widget(p, ctx.pbox.header.rect);
     }
 
-
-    fn render_body<B, I>(&'a self, f: &mut Frame<B>, items: I, ctx: &Self::Context) where B: Backend, I: AsRef<[ProfileItem<'a>]>{
+    fn render_body<B, I>(&'a self, f: &mut Frame<B>, items: I, ctx: &Self::Context) where B: Backend, I: AsRef<[&'a ProfileItem]>{
         let mut checkpoint_lines:Vec<Spans> = vec!();
 
         for item in items.as_ref().clone() {
@@ -84,7 +82,7 @@ impl<'a> Panel<'a> for SourcePanel<'a> {
     }
 
 
-    fn render_help<B, I>(&'a self, f: &mut Frame<B>, _items: I, ctx: &Self::Context) where B: Backend, I: AsRef<[ProfileItem<'a>]> {
+    fn render_help<B, I>(&'a self, f: &mut Frame<B>, _items: I, ctx: &Self::Context) where B: Backend, I: AsRef<[&'a ProfileItem]> {
         let w = help_widget(&self.help).block(ctx.pbox.footer.block.clone());
         
         f.render_widget(w, ctx.pbox.footer.rect);

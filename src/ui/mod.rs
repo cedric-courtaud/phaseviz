@@ -8,7 +8,7 @@ use tui::{
 };
 
 use crate::app::App;
-use crate::app::ProfileItem;
+use crate::profile::ProfileItem;
 
 mod checkpoints;
 mod source;
@@ -39,14 +39,14 @@ pub struct PanelBox<'a> {
 pub trait Panel<'a> {
     type Context;
 
-    fn get_context<I>(&'a self, items: I, p: PanelBox<'a>) -> Self::Context where I: AsRef<[ProfileItem<'a>]>;
-    fn render_header<B, I>(&'a self, f: &mut Frame<B>, items: I, ctx: &Self::Context) where B: Backend, I: AsRef<[ProfileItem<'a>]>;
-    fn render_body<B, I>(&'a self, f: &mut Frame<B>, items: I, ctx: &Self::Context) where B: Backend, I: AsRef<[ProfileItem<'a>]>;
-    fn render_help<B, I>(&'a self, f: &mut Frame<B>, items:I, ctx: &Self::Context) where B: Backend, I: AsRef<[ProfileItem<'a>]>;
+    fn get_context<I>(&'a self, items: I, p: PanelBox<'a>) -> Self::Context where I: AsRef<[&'a ProfileItem]>;
+    fn render_header<B, I>(&'a self, f: &mut Frame<B>, items: I, ctx: &Self::Context) where B: Backend, I: AsRef<[&'a ProfileItem]>;
+    fn render_body<B, I>(&'a self, f: &mut Frame<B>, items: I, ctx: &Self::Context) where B: Backend, I: AsRef<[&'a ProfileItem]>;
+    fn render_help<B, I>(&'a self, f: &mut Frame<B>, items:I, ctx: &Self::Context) where B: Backend, I: AsRef<[&'a ProfileItem]>;
 }
 
 pub fn render_panel<'a, P, B, T>(p: &'a mut P, f: &mut Frame<B>, rect: Rect, items: T) 
-where P: Panel<'a>, B: tui::backend::Backend,T: AsRef<[ProfileItem<'a>]> {
+where P: Panel<'a>, B: tui::backend::Backend,T: AsRef<[&'a ProfileItem]> {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints(
@@ -86,9 +86,9 @@ pub fn draw<B: tui::backend::Backend>(f: &mut Frame<B>, app: &mut App) {
             .direction(Direction::Vertical)
             .constraints(
                 [
-                    Constraint::Length(3),
+                    Constraint::Length(0),
                     Constraint::Min(0),
-                    Constraint::Length(3),
+                    Constraint::Length(0),
                 ]
                 .as_ref(),
             )
@@ -127,9 +127,6 @@ pub fn draw<B: tui::backend::Backend>(f: &mut Frame<B>, app: &mut App) {
         let checkpoints_chunk = main_chunks[0];
         let source_chunk = main_chunks[1];
 
-        let info_chunk = footer_chunks[0];
-
-
         let source_block = Block::default().borders(Borders::ALL);
 
         let h = source_block.inner(source_chunk).height;
@@ -143,10 +140,12 @@ pub fn draw<B: tui::backend::Backend>(f: &mut Frame<B>, app: &mut App) {
         let t2 = "Placeholder";
         let info_text = Text::from(t2);
 
+        let info_chunk = footer_chunks[0];
         let info_block = Block::default().borders(Borders::ALL)
                                          .style(Style::default().bg(Color::Red));
 
         let info = Paragraph::new(info_text).block(info_block);
+
         
         let source_outter_block = Block::default().borders(Borders::BOTTOM | Borders::TOP);
         f.render_widget(source_outter_block, source_chunk);
@@ -157,6 +156,6 @@ pub fn draw<B: tui::backend::Backend>(f: &mut Frame<B>, app: &mut App) {
         let mut checkpoint_panel = checkpoints::CheckpointPanel::new(vec!(("H", "Help")));
         let mut source_panel = source::SourcePanel::new(vec!(("H", "Help")));
 
-        render_panel(&mut checkpoint_panel, f, checkpoints_chunk, items);
-        render_panel(&mut source_panel, f, source_chunk, items);
+        render_panel(&mut checkpoint_panel, f, checkpoints_chunk, &items);
+        render_panel(&mut source_panel, f, source_chunk, &items);
 }

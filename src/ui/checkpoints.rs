@@ -1,4 +1,4 @@
-use crate::app::{ProfileItem};
+use crate::profile::ProfileItem;
 
 use tui::{
     widgets::{Paragraph},
@@ -12,14 +12,21 @@ use super::{Panel, help_widget, PanelBox};
 
 use std::collections::btree_set::BTreeSet;
 
-fn get_checkpoints <'a,T: AsRef<[ProfileItem<'a>]>>(items: T) -> Vec<u32> {
+fn get_checkpoints <'a, T: AsRef<[&'a ProfileItem]>>(items: T) -> Vec<u32> {
     let mut checkpoints = BTreeSet::new();
     
     for item in items.as_ref() {
         match item {
-             ProfileItem::FileHeader(f) => f.get_checkpoints().iter().for_each(|c| {checkpoints.insert(*c);}),
-             ProfileItem::CodeLine(l) => l.checkpoints.iter().for_each(|c| {checkpoints.insert(*c);}),
-             ProfileItem::FunctionLine(l) => l.checkpoints.iter().for_each(|c| {checkpoints.insert(*c);}),
+            ProfileItem::File(f) => {
+                for c in f.borrow().checkpoints.iter() {
+                    checkpoints.insert(*c);
+                }
+            },
+            ProfileItem::Line(_, l) => {
+                for c in l.checkpoints.iter() {
+                    checkpoints.insert(*c);
+                }
+            },
         }
     }
 
@@ -44,7 +51,7 @@ fn format_header_cell<'a>(id: u32, cell_width: usize) -> Span<'a> {
 
 fn format_cell<'a>(met: bool, cell_width: usize) -> Span<'a> {
     // let status_char = if met {"◼︎"} else {"◻︎"};
-    let status_char = if met {'◼'} else {'◻'};
+    let status_char = if met {'◼'} else {' '};
 
     let style = if met {Style::default().fg(Color::LightGreen)} else {Style::default().fg(Color::Gray)};
 
@@ -69,13 +76,13 @@ fn checkpoints_line<'a>(item: &'a ProfileItem, checkpoints: &Vec<u32>, cell_widt
 
     for checkpoint in checkpoints {
         let met = match item {
-            ProfileItem::FileHeader(f) => {
-                f.get_checkpoints().contains(checkpoint)
-            }
 
-            ProfileItem::FunctionLine(l) | ProfileItem::CodeLine(l) => {
-                l.checkpoints.contains(checkpoint)
-            }
+            ProfileItem::File(f) => {
+                f.borrow().checkpoints.iter().find(|c| *c == checkpoint) != None
+            },
+            ProfileItem::Line(_, l) => {
+                l.checkpoints.iter().find(|c| *c == checkpoint) != None
+            },
         };
 
         spans.push(format_cell(met, cell_width as usize));
@@ -105,7 +112,7 @@ impl<'a> CheckpointPanel<'a> {
 impl<'a> Panel<'a> for CheckpointPanel<'a> {
     type Context = CheckpointPanelContext<'a>;
 
-    fn get_context<I>(&'a self, items: I, p: PanelBox<'a>) -> Self::Context where I: AsRef<[ProfileItem<'a>]>{
+    fn get_context<I>(&'a self, items: I, p: PanelBox<'a>) -> Self::Context where I: AsRef<[&'a ProfileItem]>{
         let checkpoints = get_checkpoints(&items);
         let max_id = if let Some(id) = checkpoints.last() {*id} else {0};
         let max_digits = number_of_digits(max_id);
@@ -128,7 +135,7 @@ impl<'a> Panel<'a> for CheckpointPanel<'a> {
         }
     }
     
-    fn render_header<B, I>(&'a self, f: &mut Frame<B>, items: I, ctx: &Self::Context) where B: Backend, I: AsRef<[ProfileItem<'a>]>{
+    fn render_header<B, I>(&'a self, f: &mut Frame<B>, items: I, ctx: &Self::Context) where B: Backend, I: AsRef<[&'a ProfileItem]>{
         let checkpoints = get_checkpoints(items);
         let header_line = checkpoints_header(&checkpoints, ctx.cell_width as usize);
         let p = Paragraph::new(Text::from(header_line)).block(ctx.pbox.header.block.clone());
@@ -136,7 +143,7 @@ impl<'a> Panel<'a> for CheckpointPanel<'a> {
         f.render_widget(p, ctx.pbox.header.rect);
     }
 
-    fn render_body<B, I>(&'a self, f: &mut Frame<B>, items: I, ctx: &Self::Context) where B: Backend, I: AsRef<[ProfileItem<'a>]> {
+    fn render_body<B, I>(&'a self, f: &mut Frame<B>, items: I, ctx: &Self::Context) where B: Backend, I: AsRef<[&'a ProfileItem]> {
         let mut checkpoint_lines:Vec<Spans> = vec!();
         
         for item in items.as_ref().clone() {
@@ -147,7 +154,7 @@ impl<'a> Panel<'a> for CheckpointPanel<'a> {
         f.render_widget(p, ctx.pbox.body.rect);
     }
 
-    fn render_help<B, I>(&'a self, f: &mut Frame<B>, _items:I, ctx: &Self::Context) where B: Backend, I: AsRef<[ProfileItem<'a>]>{
+    fn render_help<B, I>(&'a self, f: &mut Frame<B>, _items:I, ctx: &Self::Context) where B: Backend, I: AsRef<[&'a ProfileItem]>{
         let w = help_widget(&self.help).block(ctx.pbox.footer.block.clone());
         
         f.render_widget(w, ctx.pbox.footer.rect);

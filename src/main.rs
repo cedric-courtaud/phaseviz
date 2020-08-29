@@ -10,11 +10,10 @@ mod profile;
 mod parser;
 mod app;
 mod ui;
-mod p2;
 
 fn main() {
     let mut profile = profile::Profile::parse("assets/test/memviz.chekpoint.8446");
-    profile.sync_with_fs();
-    let mut app = app::App::new(&profile);
+    let synced_profile = profile.synced();
+    let mut app = app::App::new(&synced_profile);
     app.run();
 }
