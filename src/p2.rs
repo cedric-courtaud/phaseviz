@@ -257,7 +257,7 @@ impl<'a> FileSection<'a> {
         }
     }
 
-    pub fn sync_with_fs(self) -> SyncedFileSection<'a> {
+    pub fn synced(self) -> SyncedFileSection<'a> {
         SyncedFileSection::new(self)
     }
 }
@@ -365,7 +365,7 @@ impl <'a> Iterator for SyncedFileSection<'a> {
 
 /// An iterator over all the profile file sections.
 /// File sections are guaranteed to be ordered by FileInfo.
-struct FileSections<'a> {
+pub struct FileSections<'a> {
     iter: Box<dyn Iterator<Item=FileSection<'a>> + 'a>,
 }
 
@@ -388,23 +388,55 @@ impl<'a> Iterator for FileSections<'a> {
     }
 }
 
+pub struct SyncedProfileItems <'a> {
+    iter: Box<dyn Iterator<Item=ProfileItem> + 'a>,
+}
+
+impl<'a> SyncedProfileItems<'a> {
+    pub fn new (profile: &'a Profile) -> SyncedProfileItems<'a> {
+        let files = profile.items.iter().filter(|item| item.is_file());
+        let iter = files.map(move |file| profile.file_section(file));
+
+        SyncedProfileItems {
+            iter: Box::new(profile.file_sections()
+                                  .map(move |section| section.synced())
+                                  .flatten())
+        }
+
+    }
+}
+
+impl<'a> Iterator for SyncedProfileItems<'a> {
+    type Item=ProfileItem;
+    
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
+    }
+}
+
+
+
 pub struct Profile {
     pub items: BTreeSet<ProfileItem>
 }
 
 impl<'a> Profile {
-    fn file_sections(&'a self) -> FileSections<'a> {
+    pub fn file_sections(&'a self) -> FileSections<'a> {
         FileSections::new(self)
     }
 
-    fn file_section(&'a self, item: &'a ProfileItem) -> FileSection<'a> {
+    pub fn file_section(&'a self, item: &'a ProfileItem) -> FileSection<'a> {
         FileSection::new(self, item)
     }
 
-    fn sync_with_fs(&self) -> Profile {
+    pub fn synced_items(&'a self) -> SyncedProfileItems<'a> {
+        SyncedProfileItems::new(self)
+    }
+
+    pub fn synced(&self) -> Profile {
         Profile{
             items: self.file_sections()
-                       .map(|section| section.sync_with_fs())
+                       .map(|section| section.synced())
                        .flatten()
                        .collect()
         }
@@ -583,7 +615,7 @@ mod tests {
         items2.insert(ProfileItem::Line(f.clone(), LineInfo::new(24, (0, 0), Some(String::from(file_lines[23].clone())), None, true, bt_set!())));
         items2.insert(ProfileItem::Line(f.clone(), LineInfo::new(25, (0, 0), Some(String::from(file_lines[24].clone())), None, true, bt_set!())));
 
-        let mut p1 = Profile{
+        let p1 = Profile{
             //checkpoints: vec!(),
             //file_sections: vec!(items1)
             items: items1
@@ -593,9 +625,7 @@ mod tests {
             items: items2
         };
 
-        let p3 = p1.sync_with_fs();
-
-        for (i1, i2) in p2.items.iter().zip(p3.items.iter()) {
+        for (i1, i2) in p2.items.iter().zip(p1.synced().items.iter()) {
             assert_eq!(i1, i2);
         }
 
