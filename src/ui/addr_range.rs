@@ -2,18 +2,16 @@ use crate::model::profile::ProfileItem;
 
 use tui::{
     backend::Backend,
-    style::{Color, Modifier, Style},
     text::{Span, Spans, Text},
     widgets::{Borders, Paragraph},
     Frame,
 };
 
-use super::{help_widget, Panel, PanelBox};
+use super::{Panel, PanelBox};
 
-use std::collections::btree_set::BTreeSet;
 
 pub struct InstAddrPanel<'a> {
-    help: Vec<(&'a str, &'a str)>,
+       _help: Vec<(&'a str, &'a str)>,
 }
 
 pub struct InstAddrContext<'a> {
@@ -22,7 +20,7 @@ pub struct InstAddrContext<'a> {
 
 impl<'a> InstAddrPanel<'a> {
     pub fn new(help: Vec<(&'a str, &'a str)>) -> InstAddrPanel<'a> {
-        InstAddrPanel { help: help }
+        InstAddrPanel { _help: help }
     }
 }
 

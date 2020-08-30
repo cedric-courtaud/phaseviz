@@ -226,7 +226,7 @@ impl<'a> ProfileItem {
     pub fn is_in_same_file<'b: 'a>(&'a self, other: &'b ProfileItem) -> bool {
         match (self, other) {
             (ProfileItem::Line(f1, _), ProfileItem::File(f2)) => f1 == f2,
-            (ProfileItem::File(f2), ProfileItem::Line(f1, l)) => f1 == f2,
+            (ProfileItem::File(f2), ProfileItem::Line(f1, _)) => f1 == f2,
             (ProfileItem::File(f1), ProfileItem::File(f2)) => f1 == f2,
             (ProfileItem::Line(f1, _), ProfileItem::Line(f2, _)) => f1 == f2,
         }
@@ -391,9 +391,6 @@ pub struct SyncedProfileItems<'a> {
 
 impl<'a> SyncedProfileItems<'a> {
     pub fn new(profile: &'a Profile) -> SyncedProfileItems<'a> {
-        let files = profile.items.iter().filter(|item| item.is_file());
-        let iter = files.map(move |file| profile.file_section(file));
-
         SyncedProfileItems {
             iter: Box::new(
                 profile
@@ -418,6 +415,31 @@ pub struct Profile {
 }
 
 impl<'a> Profile {
+    pub fn new(items: BTreeSet<ProfileItem>) -> Profile{
+        let mut ret = Profile {
+            items: items
+        };
+
+        ret.set_files_checkpoints();
+        
+        ret 
+    }
+
+    fn set_files_checkpoints(&'a mut self) {
+        for section in self.file_sections() {
+            for item in section {
+                match item {
+                    ProfileItem::Line(f, l) => {
+                        for c in &l.checkpoints {
+                            f.borrow_mut().checkpoints.insert(*c);
+                        }
+                    },
+                    _ => {}
+                }
+            }
+        }
+    }
+
     pub fn file_sections(&'a self) -> FileSections<'a> {
         FileSections::new(self)
     }
@@ -433,9 +455,7 @@ impl<'a> Profile {
     pub fn synced(&self) -> Profile {
         Profile {
             items: self
-                .file_sections()
-                .map(|section| section.synced())
-                .flatten()
+                .synced_items()
                 .collect(),
         }
     }

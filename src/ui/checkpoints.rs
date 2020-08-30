@@ -2,10 +2,10 @@ use crate::model::profile::ProfileItem;
 
 use tui::{
     backend::Backend,
-    style::{Color, Modifier, Style},
+    style::{Color, Style},
     text::{Span, Spans, Text},
     widgets::Paragraph,
-    Frame,
+    Frame
 };
 
 use super::{help_widget, Panel, PanelBox};

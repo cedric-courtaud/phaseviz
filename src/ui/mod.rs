@@ -1,8 +1,8 @@
 use tui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
-    text::{Span, Spans, Text},
+    style::{Modifier, Style},
+    text::{Span, Spans},
     widgets::{Block, Borders, Paragraph},
     Frame,
 };
@@ -144,13 +144,13 @@ pub fn draw<B: tui::backend::Backend>(f: &mut Frame<B>, app: &mut App) {
         .margin(1)
         .split(main_chunk);
 
-    let header_chunks = Layout::default()
+    let _header_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(100)].as_ref())
         .margin(0)
         .split(header_chunk);
 
-    let footer_chunks = Layout::default()
+    let _footer_chunks = Layout::default()
         .direction(Direction::Horizontal)
         .constraints([Constraint::Percentage(100)].as_ref())
         .margin(0)
@@ -170,18 +170,23 @@ pub fn draw<B: tui::backend::Backend>(f: &mut Frame<B>, app: &mut App) {
 
     let items = &app.items[a..=b];
 
-    let t2 = "Placeholder";
-    let info_text = Text::from(t2);
+    // let t2 = "Placeholder";
+    // let info_text = Text::from(t2);
 
+    /*
     let info_chunk = footer_chunks[0];
     let info_block = Block::default()
         .borders(Borders::ALL)
         .style(Style::default().bg(Color::Red));
 
     let info = Paragraph::new(info_text).block(info_block);
+    */
 
     let source_outter_block = Block::default().borders(Borders::BOTTOM | Borders::TOP);
     f.render_widget(source_outter_block, source_chunk);
+    
+    let addr_outter_block = Block::default().borders(Borders::BOTTOM | Borders::TOP);
+    f.render_widget(addr_outter_block, addr_chunk);
 
     let checkpoints_outter_block = Block::default().borders(Borders::BOTTOM | Borders::TOP);
     f.render_widget(checkpoints_outter_block, checkpoints_chunk);

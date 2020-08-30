@@ -1,5 +1,4 @@
-use crate::model::profile::{FileInfo, LineInfo, Profile, ProfileItem};
-use std::fmt;
+use crate::model::profile::{Profile, ProfileItem};
 use std::io::{stdin, stdout};
 
 use termion::{event::Key, input::TermRead, raw::IntoRawMode};

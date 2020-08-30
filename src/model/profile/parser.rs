@@ -130,7 +130,7 @@ impl Profile {
 
         let fl;
 
-        let item = match line.as_rule() {
+        match line.as_rule() {
             Rule::file_line => {
                 let filename = String::from(line.into_inner().as_str());
                 let path = PathInfo::new("".to_string(), filename);
@@ -192,9 +192,7 @@ impl Profile {
             }
         }
 
-        Profile {
-            items: items.into_inner(),
-        }
+        Profile::new(items.into_inner())
     }
 }
 

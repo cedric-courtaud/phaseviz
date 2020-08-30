@@ -30,7 +30,7 @@ fn render_code_line<'a>(item: &'a ProfileItem) -> Spans<'a> {
                     .add_modifier(Modifier::ITALIC),
             ),
         ]),
-        ProfileItem::Line(f, l) => {
+        ProfileItem::Line(_, l) => {
             if l.line_content.is_some() {
                 Spans::from(vec![
                     line_nb_col(l.nb),
