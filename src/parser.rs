@@ -9,7 +9,7 @@ use std::collections::BTreeSet;
 use std::cell::RefCell;
 
 #[derive(Parser)]
-#[grammar = "profile.pest"]
+#[grammar = "grammar.pest"]
 struct ProfileParser;
 
 impl Profile {
