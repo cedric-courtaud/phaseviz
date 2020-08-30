@@ -1,4 +1,4 @@
-use crate::profile::{Profile, LineInfo, FileInfo, PathInfo, ProfileItem};
+use crate::model::profile::{Profile, LineInfo, FileInfo, PathInfo, ProfileItem};
 use pest::{Parser};
 
 use std::path::Path;
@@ -9,7 +9,7 @@ use std::collections::BTreeSet;
 use std::cell::RefCell;
 
 #[derive(Parser)]
-#[grammar = "grammar.pest"]
+#[grammar = "model/profile/grammar.pest"]
 struct ProfileParser;
 
 impl Profile {

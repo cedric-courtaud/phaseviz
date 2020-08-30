@@ -1,4 +1,4 @@
-use crate::profile::{Profile, ProfileItem, FileInfo, LineInfo};
+use crate::model::profile::{Profile, ProfileItem, FileInfo, LineInfo};
 use std::io::{stdout, stdin};
 use std::fmt;
 

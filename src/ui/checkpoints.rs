@@ -1,4 +1,4 @@
-use crate::profile::ProfileItem;
+use crate::model::profile::ProfileItem;
 
 use tui::{
     widgets::{Paragraph},

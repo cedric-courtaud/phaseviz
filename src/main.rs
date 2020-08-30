@@ -6,8 +6,7 @@ extern crate pest;
 
 #[macro_use]
 mod utils;
-mod profile;
-mod parser;
+mod model;
 mod app;
 mod ui;
 
@@ -27,7 +26,7 @@ fn main() {
 
     let profile_path = &args[1];
 
-    let profile = profile::Profile::parse(profile_path);
+    let profile = model::profile::Profile::parse(profile_path);
     let synced_profile = profile.synced();
     let mut app = app::App::new(&synced_profile);
     

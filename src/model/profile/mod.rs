@@ -8,6 +8,8 @@ use std::{
     iter::{Cloned, Peekable}
 };
 
+mod parser;
+
 fn cmp_option_helper<T:Ord>(a: &Option<T>, b: &Option<T>) -> Ordering {
 
     let comp = a.cmp(b);

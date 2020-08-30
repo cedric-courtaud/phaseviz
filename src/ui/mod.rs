@@ -8,7 +8,7 @@ use tui::{
 };
 
 use crate::app::App;
-use crate::profile::ProfileItem;
+use crate::model::profile::ProfileItem;
 
 mod checkpoints;
 mod source;
