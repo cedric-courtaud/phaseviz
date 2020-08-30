@@ -7,7 +7,7 @@ use tui::{
     style::{Style, Color, Modifier}
 };
 
-use crate::app::App;
+use crate::controller::App;
 use crate::model::profile::ProfileItem;
 
 mod checkpoints;

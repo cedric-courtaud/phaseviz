@@ -7,7 +7,7 @@ extern crate pest;
 #[macro_use]
 mod utils;
 mod model;
-mod app;
+mod controller;
 mod ui;
 
 fn print_usage(args: Vec<String>) {
@@ -28,7 +28,7 @@ fn main() {
 
     let profile = model::profile::Profile::parse(profile_path);
     let synced_profile = profile.synced();
-    let mut app = app::App::new(&synced_profile);
+    let mut app = controller::App::new(&synced_profile);
     
     app.run();
 }
