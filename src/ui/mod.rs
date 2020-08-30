@@ -12,6 +12,7 @@ use crate::model::profile::ProfileItem;
 
 mod checkpoints;
 mod source;
+mod addr_range;
 
 pub fn help_widget<'a, T: AsRef<[(&'a str, &'a str)]>>(items: T) -> Paragraph<'a> {
         let block   = Block::default().borders(Borders::TOP).style(Style::default());
@@ -102,7 +103,8 @@ pub fn draw<B: tui::backend::Backend>(f: &mut Frame<B>, app: &mut App) {
         let main_chunks = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([
-                Constraint::Percentage(50),
+                Constraint::Min(0),
+                Constraint::Length(30),
                 Constraint::Percentage(50)
             ].as_ref())
             .margin(1)
@@ -125,7 +127,8 @@ pub fn draw<B: tui::backend::Backend>(f: &mut Frame<B>, app: &mut App) {
             .split(footer_chunk);
 
         let checkpoints_chunk = main_chunks[0];
-        let source_chunk = main_chunks[1];
+        let addr_chunk = main_chunks[1];
+        let source_chunk = main_chunks[2];
 
         let source_block = Block::default().borders(Borders::ALL);
 
@@ -154,8 +157,10 @@ pub fn draw<B: tui::backend::Backend>(f: &mut Frame<B>, app: &mut App) {
         f.render_widget(checkpoints_outter_block, checkpoints_chunk);
 
         let mut checkpoint_panel = checkpoints::CheckpointPanel::new(vec!(("H", "Help")));
+        let mut addr_panel = addr_range::InstAddrPanel::new(vec!(("H", "Help")));
         let mut source_panel = source::SourcePanel::new(vec!(("H", "Help")));
 
         render_panel(&mut checkpoint_panel, f, checkpoints_chunk, &items);
+        render_panel(&mut addr_panel, f, addr_chunk, &items);
         render_panel(&mut source_panel, f, source_chunk, &items);
 }
