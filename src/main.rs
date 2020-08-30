@@ -11,9 +11,25 @@ mod parser;
 mod app;
 mod ui;
 
+fn print_usage(args: Vec<String>) {
+    eprintln!("Usage: {} path_to_profile", args[0]);
+}
+
 fn main() {
-    let mut profile = profile::Profile::parse("assets/test/memviz.chekpoint.8446");
+
+    let args: Vec<String> = std::env::args().collect();
+
+    if args.len() < 2 {
+        eprintln!("PhaseViz error: No path to profile specified");
+        print_usage(args);
+        std::process::exit(1);
+    }
+
+    let profile_path = &args[1];
+
+    let profile = profile::Profile::parse(profile_path);
     let synced_profile = profile.synced();
     let mut app = app::App::new(&synced_profile);
+    
     app.run();
 }
