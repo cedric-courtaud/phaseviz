@@ -65,8 +65,25 @@ impl<'a> Panel<'a> for SourcePanel<'a> {
         }
     }
     
-    fn render_header<B, I>(&'a self, f: &mut Frame<B>, _items: I, ctx: &Self::Context) where B: Backend, I: AsRef<[&'a ProfileItem]> {
-        let p = Paragraph::new(Text::from("")).block(ctx.pbox.header.block.clone());
+    fn render_header<B, I>(&'a self, f: &mut Frame<B>, items: I, ctx: &Self::Context) where B: Backend, I: AsRef<[&'a ProfileItem]> {
+        let txt = if items.as_ref().is_empty() {
+            Text::from("")
+        } else {
+            if items.as_ref()[0].is_file() {
+                Text::from("")
+            } else {
+                let spans = Spans::from(vec!(
+                    Span::raw(""),
+                    Span::styled(format!("In file {:?}", items.as_ref()[0].get_file_info().borrow().path.expand()), Style::default())
+                ));
+
+                Text::from(spans)
+            }
+        };
+
+        let p = Paragraph::new(txt).block(ctx.pbox.header.block.clone());
+
+
         f.render_widget(p, ctx.pbox.header.rect);
     }
 
