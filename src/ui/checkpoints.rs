@@ -51,7 +51,7 @@ fn format_header_cell<'a>(id: u32, cell_width: usize) -> Span<'a> {
 
 fn format_cell<'a>(met: bool, cell_width: usize) -> Span<'a> {
     // let status_char = if met {"◼︎"} else {"◻︎"};
-    let status_char = if met {'◼'} else {' '};
+    let status_char = if met {'◼'} else {'·'};
 
     let style = if met {Style::default().fg(Color::LightGreen)} else {Style::default().fg(Color::Gray)};
 
