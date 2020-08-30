@@ -1,29 +1,34 @@
 use tui::{
-    layout::{Constraint, Direction, Layout, Rect},
-    widgets::{Block, Borders, Paragraph},
-    text::{Text, Span, Spans},
-    Frame,
     backend::Backend,
-    style::{Style, Color, Modifier}
+    layout::{Constraint, Direction, Layout, Rect},
+    style::{Color, Modifier, Style},
+    text::{Span, Spans, Text},
+    widgets::{Block, Borders, Paragraph},
+    Frame,
 };
 
 use crate::controller::App;
 use crate::model::profile::ProfileItem;
 
+mod addr_range;
 mod checkpoints;
 mod source;
-mod addr_range;
 
 pub fn help_widget<'a, T: AsRef<[(&'a str, &'a str)]>>(items: T) -> Paragraph<'a> {
-        let block   = Block::default().borders(Borders::TOP).style(Style::default());
-        let mut spans: Vec<Span> = vec!(Span::from(""));
+    let block = Block::default()
+        .borders(Borders::TOP)
+        .style(Style::default());
+    let mut spans: Vec<Span> = vec![Span::from("")];
 
-        for i in items.as_ref() {
-            spans.push(Span::styled(format!("[{}] ", i.0), Style::default().add_modifier(Modifier::BOLD)));
-            spans.push(Span::from(i.1));
-        }
+    for i in items.as_ref() {
+        spans.push(Span::styled(
+            format!("[{}] ", i.0),
+            Style::default().add_modifier(Modifier::BOLD),
+        ));
+        spans.push(Span::from(i.1));
+    }
 
-        Paragraph::new(Spans::from(spans)).block(block)
+    Paragraph::new(Spans::from(spans)).block(block)
 }
 
 pub struct PanelPart<'a> {
@@ -33,134 +38,159 @@ pub struct PanelPart<'a> {
 
 pub struct PanelBox<'a> {
     header: PanelPart<'a>,
-    body:   PanelPart<'a>,
+    body: PanelPart<'a>,
     footer: PanelPart<'a>,
 }
 
 pub trait Panel<'a> {
     type Context;
 
-    fn get_context<I>(&'a self, items: I, p: PanelBox<'a>) -> Self::Context where I: AsRef<[&'a ProfileItem]>;
-    fn render_header<B, I>(&'a self, f: &mut Frame<B>, items: I, ctx: &Self::Context) where B: Backend, I: AsRef<[&'a ProfileItem]>;
-    fn render_body<B, I>(&'a self, f: &mut Frame<B>, items: I, ctx: &Self::Context) where B: Backend, I: AsRef<[&'a ProfileItem]>;
-    fn render_help<B, I>(&'a self, f: &mut Frame<B>, items:I, ctx: &Self::Context) where B: Backend, I: AsRef<[&'a ProfileItem]>;
+    fn get_context<I>(&'a self, items: I, p: PanelBox<'a>) -> Self::Context
+    where
+        I: AsRef<[&'a ProfileItem]>;
+    fn render_header<B, I>(&'a self, f: &mut Frame<B>, items: I, ctx: &Self::Context)
+    where
+        B: Backend,
+        I: AsRef<[&'a ProfileItem]>;
+    fn render_body<B, I>(&'a self, f: &mut Frame<B>, items: I, ctx: &Self::Context)
+    where
+        B: Backend,
+        I: AsRef<[&'a ProfileItem]>;
+    fn render_help<B, I>(&'a self, f: &mut Frame<B>, items: I, ctx: &Self::Context)
+    where
+        B: Backend,
+        I: AsRef<[&'a ProfileItem]>;
 }
 
-pub fn render_panel<'a, P, B, T>(p: &'a mut P, f: &mut Frame<B>, rect: Rect, items: T) 
-where P: Panel<'a>, B: tui::backend::Backend,T: AsRef<[&'a ProfileItem]> {
-        let chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints(
-                [
-                    Constraint::Length(2),
-                    Constraint::Min(0),
-                    Constraint::Length(2),
-                ]
-                .as_ref(),
-            )
-            .margin(1)
-            .split(rect);
+pub fn render_panel<'a, P, B, T>(p: &'a mut P, f: &mut Frame<B>, rect: Rect, items: T)
+where
+    P: Panel<'a>,
+    B: tui::backend::Backend,
+    T: AsRef<[&'a ProfileItem]>,
+{
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Length(2),
+                Constraint::Min(0),
+                Constraint::Length(2),
+            ]
+            .as_ref(),
+        )
+        .margin(1)
+        .split(rect);
 
-        let header_chunk = chunks[0];
-        let main_chunk = chunks[1];
-        let help_chunk = chunks[2];
+    let header_chunk = chunks[0];
+    let main_chunk = chunks[1];
+    let help_chunk = chunks[2];
 
-        let main_block   = Block::default().borders(Borders::NONE);
-        let header_block = Block::default().borders(Borders::BOTTOM).style(Style::default());
-        let help_block = Block::default().borders(Borders::TOP);
+    let main_block = Block::default().borders(Borders::NONE);
+    let header_block = Block::default()
+        .borders(Borders::BOTTOM)
+        .style(Style::default());
+    let help_block = Block::default().borders(Borders::TOP);
 
-        let panel_box = PanelBox {
-            header: PanelPart{rect: header_chunk, block: header_block},
-            body: PanelPart{rect: main_chunk, block: main_block},
-            footer: PanelPart{rect: help_chunk, block: help_block},
-        };
+    let panel_box = PanelBox {
+        header: PanelPart {
+            rect: header_chunk,
+            block: header_block,
+        },
+        body: PanelPart {
+            rect: main_chunk,
+            block: main_block,
+        },
+        footer: PanelPart {
+            rect: help_chunk,
+            block: help_block,
+        },
+    };
 
-        let ctx = p.get_context(&items, panel_box);
-        
-        p.render_body(f,  &items, &ctx);
-        p.render_header(f, &items, &ctx);
-        p.render_help(f, &items, &ctx);
+    let ctx = p.get_context(&items, panel_box);
+
+    p.render_body(f, &items, &ctx);
+    p.render_header(f, &items, &ctx);
+    p.render_help(f, &items, &ctx);
 }
 
 pub fn draw<B: tui::backend::Backend>(f: &mut Frame<B>, app: &mut App) {
-        let vertical_chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints(
-                [
-                    Constraint::Length(0),
-                    Constraint::Min(0),
-                    Constraint::Length(0),
-                ]
-                .as_ref(),
-            )
-            .margin(1)
-            .split(f.size());
+    let vertical_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints(
+            [
+                Constraint::Length(0),
+                Constraint::Min(0),
+                Constraint::Length(0),
+            ]
+            .as_ref(),
+        )
+        .margin(1)
+        .split(f.size());
 
-        let header_chunk = vertical_chunks[0];
-        let main_chunk = vertical_chunks[1];
-        let footer_chunk = vertical_chunks[2];
+    let header_chunk = vertical_chunks[0];
+    let main_chunk = vertical_chunks[1];
+    let footer_chunk = vertical_chunks[2];
 
-        let main_chunks = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([
+    let main_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(
+            [
                 Constraint::Min(0),
                 Constraint::Length(30),
-                Constraint::Percentage(50)
-            ].as_ref())
-            .margin(1)
-            .split(main_chunk);
-        
-        let header_chunks = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([
-                Constraint::Percentage(100),
-            ].as_ref())
-            .margin(0)
-            .split(header_chunk);
-        
-        let footer_chunks = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([
-                Constraint::Percentage(100),
-            ].as_ref())
-            .margin(0)
-            .split(footer_chunk);
+                Constraint::Percentage(50),
+            ]
+            .as_ref(),
+        )
+        .margin(1)
+        .split(main_chunk);
 
-        let checkpoints_chunk = main_chunks[0];
-        let addr_chunk = main_chunks[1];
-        let source_chunk = main_chunks[2];
+    let header_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(100)].as_ref())
+        .margin(0)
+        .split(header_chunk);
 
-        let source_block = Block::default().borders(Borders::ALL);
+    let footer_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(100)].as_ref())
+        .margin(0)
+        .split(footer_chunk);
 
-        let h = source_block.inner(source_chunk).height;
-        app.set_height(h - 4);
-        
-        let a = app.get_y_pos();
-        let b = std::cmp::min(a + (h as usize), app.items.len() - 1);
+    let checkpoints_chunk = main_chunks[0];
+    let addr_chunk = main_chunks[1];
+    let source_chunk = main_chunks[2];
 
-        let items = &app.items[a..=b];
+    let source_block = Block::default().borders(Borders::ALL);
 
-        let t2 = "Placeholder";
-        let info_text = Text::from(t2);
+    let h = source_block.inner(source_chunk).height;
+    app.set_height(h - 4);
 
-        let info_chunk = footer_chunks[0];
-        let info_block = Block::default().borders(Borders::ALL)
-                                         .style(Style::default().bg(Color::Red));
+    let a = app.get_y_pos();
+    let b = std::cmp::min(a + (h as usize), app.items.len() - 1);
 
-        let info = Paragraph::new(info_text).block(info_block);
+    let items = &app.items[a..=b];
 
-        
-        let source_outter_block = Block::default().borders(Borders::BOTTOM | Borders::TOP);
-        f.render_widget(source_outter_block, source_chunk);
-        
-        let checkpoints_outter_block = Block::default().borders(Borders::BOTTOM | Borders::TOP);
-        f.render_widget(checkpoints_outter_block, checkpoints_chunk);
+    let t2 = "Placeholder";
+    let info_text = Text::from(t2);
 
-        let mut checkpoint_panel = checkpoints::CheckpointPanel::new(vec!(("H", "Help")));
-        let mut addr_panel = addr_range::InstAddrPanel::new(vec!(("H", "Help")));
-        let mut source_panel = source::SourcePanel::new(vec!(("H", "Help")));
+    let info_chunk = footer_chunks[0];
+    let info_block = Block::default()
+        .borders(Borders::ALL)
+        .style(Style::default().bg(Color::Red));
 
-        render_panel(&mut checkpoint_panel, f, checkpoints_chunk, &items);
-        render_panel(&mut addr_panel, f, addr_chunk, &items);
-        render_panel(&mut source_panel, f, source_chunk, &items);
+    let info = Paragraph::new(info_text).block(info_block);
+
+    let source_outter_block = Block::default().borders(Borders::BOTTOM | Borders::TOP);
+    f.render_widget(source_outter_block, source_chunk);
+
+    let checkpoints_outter_block = Block::default().borders(Borders::BOTTOM | Borders::TOP);
+    f.render_widget(checkpoints_outter_block, checkpoints_chunk);
+
+    let mut checkpoint_panel = checkpoints::CheckpointPanel::new(vec![("H", "Help")]);
+    let mut addr_panel = addr_range::InstAddrPanel::new(vec![("H", "Help")]);
+    let mut source_panel = source::SourcePanel::new(vec![("H", "Help")]);
+
+    render_panel(&mut checkpoint_panel, f, checkpoints_chunk, &items);
+    render_panel(&mut addr_panel, f, addr_chunk, &items);
+    render_panel(&mut source_panel, f, source_chunk, &items);
 }

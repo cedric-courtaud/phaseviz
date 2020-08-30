@@ -6,8 +6,8 @@ extern crate pest;
 
 #[macro_use]
 mod utils;
-mod model;
 mod controller;
+mod model;
 mod ui;
 
 fn print_usage(args: Vec<String>) {
@@ -15,7 +15,6 @@ fn print_usage(args: Vec<String>) {
 }
 
 fn main() {
-
     let args: Vec<String> = std::env::args().collect();
 
     if args.len() < 2 {
@@ -29,6 +28,6 @@ fn main() {
     let profile = model::profile::Profile::parse(profile_path);
     let synced_profile = profile.synced();
     let mut app = controller::App::new(&synced_profile);
-    
+
     app.run();
 }

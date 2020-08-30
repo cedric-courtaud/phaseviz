@@ -1,12 +1,8 @@
-use crate::model::profile::{Profile, ProfileItem, FileInfo, LineInfo};
-use std::io::{stdout, stdin};
+use crate::model::profile::{FileInfo, LineInfo, Profile, ProfileItem};
 use std::fmt;
+use std::io::{stdin, stdout};
 
-use termion::{
-    event::Key,
-    input::TermRead,
-    raw::IntoRawMode
-};
+use termion::{event::Key, input::TermRead, raw::IntoRawMode};
 
 use tui::backend::TermionBackend;
 use tui::Terminal;
@@ -27,9 +23,10 @@ impl<'a> App<'a> {
     }
 
     fn scroll_down(&mut self, n: u16) {
-        if (self.get_item_count() > 0) && 
-           (self.get_item_count() > self.height as usize) &&
-           (self.y_pos < (self.get_item_count() - (n + self.height - 1) as usize)) {
+        if (self.get_item_count() > 0)
+            && (self.get_item_count() > self.height as usize)
+            && (self.y_pos < (self.get_item_count() - (n + self.height - 1) as usize))
+        {
             self.y_pos += n as usize;
         }
     }
@@ -53,7 +50,7 @@ impl<'a> App<'a> {
         }
 
         if self.y_pos >= (self.get_item_count() - (self.height as usize)) {
-            return self.get_item_count() - (self.height as usize)
+            return self.get_item_count() - (self.height as usize);
         }
         return self.y_pos;
     }
@@ -67,7 +64,7 @@ impl<'a> App<'a> {
     }
 
     pub fn new(profile: &Profile) -> App {
-        App{
+        App {
             profile: profile,
             should_quit: false,
             items: profile.items.iter().collect(),
@@ -80,7 +77,7 @@ impl<'a> App<'a> {
         let stdout = stdout();
         let stdout = stdout.lock().into_raw_mode().unwrap();
         let backend = TermionBackend::new(stdout);
-        
+
         self.should_quit = false;
 
         let mut terminal = Terminal::new(backend).unwrap();
